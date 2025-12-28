@@ -1,0 +1,48 @@
+## ATENCION: NO USAR CARACTERES ESPECIALES EN LOS NOMBRES DE LOS DIRECTORIOS O ARCHIVOS
+
+## CREAR ENTORNO VIRTUAL
+virtualenv .venv
+
+## CREAR ENTORNO VIRTUAL CON VERSION ESPECIFICA
+virtualenv --python=/usr/bin/python3.10 .venv
+
+## ACTIVAR ENTORNO VIRTUAL
+source .venv/bin/activate
+
+## INSTALAR REQUEREMENTS
+pip install -r requirements.txt
+
+## INSTALACION DE .SERVICE Y .SOCKET
+sudo cp operativos.service operativos.socket /etc/systemd/system
+
+## HABILITAR .SERVICE
+sudo systemctl enable operativos.service
+
+## INICIAR .SOCKET
+sudo systemctl start operativos.socket
+
+## COMPROBAR SOCKET
+file /run/operativos.sock
+
+## INSTALAR BLOQUE DE NGINX
+sudo cp operativos.conf /etc/nginx/sites-available/
+
+## CREAR ENLACE SIMBOLICO
+sudo ln -s /etc/nginx/sites-available/operativos.conf /etc/nginx/sites-enabled/
+
+## REINICIAR NGINX
+/etc/init.d/nginx restart
+
+## EDITAR ARCHIVO HOSTS
+sudo nano /etc/hosts
+
+
+
+## DESCARTAR ERRORES
+sudo systemctl status operativos.socket
+sudo systemctl status operativos.service
+sudo systemctl status operativos
+
+
+sudo systemctl daemon-reload
+sudo systemctl restart operativos

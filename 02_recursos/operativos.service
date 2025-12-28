@@ -1,0 +1,18 @@
+[Unit]
+Description=Demonio de la API SGI Operativos
+Requires=operativos.socket
+After=network.target
+
+[Service]
+User=rcontreras
+Group=rcontreras
+WorkingDirectory=/var/www/html/operativos_admin
+ExecStart=/var/www/html/operativos_admin/.venv/bin/gunicorn \
+        --access-logfile - \
+          -k uvicorn.workers.UvicornWorker \
+          --workers 3 \
+          --bind unix:/run/operativos.sock \
+          configuracion.asgi:application
+
+[Install]
+WantedBy=multi-user.target

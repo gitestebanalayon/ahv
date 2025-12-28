@@ -1,0 +1,18 @@
+## Editar archivo settins.py
+# Database
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'inventario_dj',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',
+        'HOST': 'localhost',
+        'PORT': '5432',
+        ## Agregar esta linea. 
+        'OPTIONS': {'options': '-c search_path=nombre_esquema'}
+    },
+}
+
+## Comando a ejecutar en la terminal
+python manage.py inspectdb > apps/nombre_app/models.py
+python manage.py inspectdb > models_esquema.py

@@ -1,0 +1,14 @@
+## COMPROBAR VERSION DE PYTHON
+python3 --version
+
+## INSTALAR PIP3 Y OTROS ELEMENTOS
+sudo apt install python3-pip python3-dev libpq-dev curl virtualenv nginx
+
+## ACTUALIZAR pip3
+sudo -H pip3 install --upgrade pip 
+
+## CAMBIAR PERMISOS DE CARPETA HTML
+sudo chmod 777 /var/www/html
+
+# CAMBIAR DUEÑO DE CARPETA
+chown www:data/www:data /var/www/html

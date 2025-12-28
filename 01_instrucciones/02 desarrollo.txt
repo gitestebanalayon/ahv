@@ -1,0 +1,55 @@
+## ATENCION: NO USAR CARACTERES ESPECIALES EN LOS NOMBRES DE LOS DIRECTORIOS O ARCHIVOS
+
+## CREAR CARPETA E INGRESAR A ELLA
+
+## CREAR ENTORNO VIRTUAL
+virtualenv .venv
+
+## CREAR ENTORNO VIRTUAL CON VERSION ESPECIFICA
+virtualenv --python=/usr/local/bin/python3.10 .venv
+
+## ACTIVAR ENTORNO VIRTUAL
+source .venv/bin/activate
+
+## INSTALAR DJANGO
+pip install django
+
+## INICIAR PROYECTO
+django-admin startproject configuracion .
+
+## PREPARAR MIGRACIONES
+pyhon manage.py makemigrations
+
+## APLICAR MIGRACIONES
+pyhon manage.py migrate
+
+## APLICAR MIGRACIONES DE CONEXION ESPECIFICA
+python manage.py migrate --database=base_de_datos
+
+## CREAR SUPERUSUARIO
+pyhon manage.py createsuperuser
+
+## EJECUTAR SERVIDOR DE DESARROLLO
+python manage.py runserver
+
+## EJECUTAR UVICORN
+python -m uvicorn configuracion.asgi:application --reload
+python -m uvicorn configuracion.asgi:application --reload --host 172.16.0.78 --port 8000
+
+## CREAR ARCHIVO requiriments.txt
+pip freeze > requirements.txt
+
+# VACIAR ESQUEMA PUBLIC EN UN MODELO
+python manage.py inspectdb > models.py
+
+# INICIAR NUEVA APLICACION
+python manage.py startapp nombre_aplicacion
+
+## ACTUALIZAR TODOS LOS PAQUETES CON PIP3
+pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip install -U
+
+## ACTUALIZAR SOLO UN PAQUETE (No sus dependencias)
+pip install -U --no-deps flask
+
+## RECOLECTAR ARCHIVOS ESTATICOS
+python manage.py collectstatic 

@@ -1,0 +1,15 @@
+Exportar toda la BD
+python manage.py dumpdata > db.json
+
+Exportar aplicacion expecifica
+python manage.py dumpdata aplicacion --indent 2 > aplicacion.json
+
+Exportar tabla especifica
+python manage.py dumpdata aplicacion.modelo > modelo.json
+
+Exportar todo con excepcion
+python manage.py dumpdata --exclude aplicacion > db.json
+
+
+Importar datos
+python manage.py loaddata archivo.json

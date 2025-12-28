@@ -1,0 +1,25 @@
+##Instalacion de Python 3.X
+##
+sudo apt-get install build-essential checkinstall
+
+##
+sudo apt-get install libreadline-gplv2-dev libncursesw5-dev libssl-dev \     libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev
+
+## Descargar el codigo fuente de Python 3.X
+## Descomprimir el codigo fuente
+## Entrar al directodio donde se ha descomprimido el codigo fuente de Python
+
+##
+./configure
+
+##
+make
+
+##
+make test
+
+##
+sudo make install
+
+## Confirmar la instalacion
+python3 --version
