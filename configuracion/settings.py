@@ -65,6 +65,7 @@ MIDDLEWARE      =   [
                         'django.contrib.messages.middleware.MessageMiddleware',
                         'django.middleware.clickjacking.XFrameOptionsMiddleware',
                         'maintenance_mode.middleware.MaintenanceModeMiddleware',
+                        'apps.cuenta.middleware.RequestMiddleware',
                     ]
 
 ROOT_URLCONF = "configuracion.urls"
@@ -317,19 +318,27 @@ UNFOLD = {
                         "title": _("Dashboard"),
                         "icon": "dashboard",
                         "link": "/admin/",
-                        "permission": lambda request: request.user.is_superuser,
+                        "permission": lambda request: request.user.is_superuser,  # Solo superusuarios
                     },
                     {
                         "title": _("Usuarios"),
                         "icon": "account_circle",
                         "link": "/admin/cuenta/user",
-                        "permission": lambda request: request.user.is_authenticated,
+                        # Permiso específico para ver usuarios
+                        "permission": lambda request: (
+                            request.user.is_authenticated and 
+                            request.user.has_perm('cuenta.view_user')
+                        ),
                     },
                     {
                         "title": _("Grupos"),
                         "icon": "people",
                         "link": "/admin/auth/group",
-                        "permission": lambda request: request.user.is_authenticated,
+                        # Permiso específico para ver grupos
+                        "permission": lambda request: (
+                            request.user.is_authenticated and 
+                            request.user.has_perm('auth.view_group')
+                        ),
                     },
                 ],
             },
