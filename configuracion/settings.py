@@ -94,7 +94,7 @@ WSGI_APPLICATION = "configuracion.wsgi.application"
 
 DATABASES = {
                 'default' :     {
-                                    'ENGINE':           'django.db.backends.postgresql',
+                                    'ENGINE':           'django.db.backends.mysql',
                                     'NAME':             config('DB_PRINCIPAL'),
                                     'USER':             config('USUARIO_PRODUCCION'),
                                     'PASSWORD':         config('CLAVE_PRODUCCION'),
