@@ -27,12 +27,12 @@ BASE_APPS = [
     "unfold.contrib.location_field",  # optional, si se utiliza el paquete django-location-field
     "unfold.contrib.constance",  # optional, si se utiliza el paquete django-constance
     "django.contrib.admin",  # required
-    
+
     # Django core apps (OBLIGATORIAS)
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
-    "django.contrib.messages", 
+    "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
 
@@ -75,7 +75,7 @@ TEMPLATES       =   [
                             'DIRS'      :   [os.path.join(BASE_DIR, 'templates')],
                             'APP_DIRS'  :   True,
                             'OPTIONS'   :   {
-                                                'context_processors': 
+                                                'context_processors':
                                                 [
                                                     'django.template.context_processors.debug',
                                                     'django.template.context_processors.request',
@@ -116,7 +116,7 @@ AUTH_PASSWORD_VALIDATORS    =   [
 
 AUTHENTICATION_BACKENDS     =   [
                                     'django.contrib.auth.backends.ModelBackend', # default
-                                    #'guardian.backends.ObjectPermissionBackend',        
+                                    #'guardian.backends.ObjectPermissionBackend',
                                 ]
 
 
@@ -133,7 +133,7 @@ MEDIA_ROOT          = os.path.join(BASE_DIR, 'media/')
 MEDIA_URL           = '/media/'
 
 
-CORS_ALLOW_ALL_ORIGINS          =   True # Si esta en True acepta peticiones de cualquier origen 
+CORS_ALLOW_ALL_ORIGINS          =   True # Si esta en True acepta peticiones de cualquier origen
                                          # Si esta en True entonces `CORS_ALLOWED_ORIGINS` no tendra efecto
 CORS_ALLOW_CREDENTIALS          =   True
 
@@ -166,7 +166,7 @@ logging.config.dictConfig(
                                         },
                         },
         "handlers":     {
-                            "console": 
+                            "console":
                                         {
                                             "class": "logging.StreamHandler",
                                             "formatter": "console",
