@@ -54,6 +54,20 @@ THIRD_APPS = [
 
 INSTALLED_APPS = BASE_APPS + LOCAL_APPS + THIRD_APPS
 
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False  # Importante: SSL y TLS no pueden ser True al mismo tiempo
+EMAIL_HOST_USER = 'serviciosesteban953@gmail.com'
+EMAIL_HOST_PASSWORD = 'ukftpyufxtmjkvkw'
+ 
+DEFAULT_FROM_EMAIL = 'serviciosesteban953@gmail.com'
+SERVER_EMAIL = 'serviciosesteban953@gmail.com'
+
+
 MIDDLEWARE      =   [
                         'django.middleware.security.SecurityMiddleware',
                         'django.contrib.sessions.middleware.SessionMiddleware',
@@ -86,6 +100,16 @@ TEMPLATES       =   [
                                             },
                         },
                     ]
+
+
+DJANGO_REST_PASSWORDRESET_TOKEN_CONFIG = {
+    'CLASS': 'django_rest_passwordreset.tokens.RandomNumberTokenGenerator',
+    'OPTIONS': {
+        'min_number': 10000,
+        'max_number': 99999
+    }
+}
+
 
 WSGI_APPLICATION = "configuracion.wsgi.application"
 
@@ -146,7 +170,9 @@ CORS_ALLOWED_ORIGINS =  [
 AUTH_USER_MODEL         = 'cuenta.User'
 AUTH_PASSWORD_RESET_URL = "http://127.0.0.1:8000/<YOUR_PASSWORD_RESET_FRONTEND_URL>/"
 
+MAINTENANCE_MODE = False  # True para activar mantenimiento
 MAINTENANCE_MODE_IGNORE_ADMIN_SITE = True
+MAINTENANCE_MODE_IGNORE_SUPERUSER = True   # Permite acceso a superusuarios
 
 # Logging Configuration
 

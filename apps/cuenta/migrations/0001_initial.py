@@ -44,14 +44,14 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "origen",
+                    "tipo_documento",
                     models.CharField(
-                        choices=[("V", "V"), ("E", "E")],
+                        choices=[("SSN", "SSN"), ("ITIN", "ITIN")],
                         max_length=1,
-                        verbose_name="Origen",
+                        verbose_name="Tipo de ocumento",
                     ),
                 ),
-                ("cedula", models.IntegerField(verbose_name="Cédula")),
+                ("numero", models.IntegerField(verbose_name="Número")),
                 (
                     "nombre_apellido",
                     models.CharField(
@@ -146,7 +146,7 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "Usuarios",
                 "db_table": 'cuenta"."usuario',
                 "managed": True,
-                "unique_together": {("origen", "cedula")},
+                "unique_together": {("tipo_documento", "numero")},
             },
         ),
     ]

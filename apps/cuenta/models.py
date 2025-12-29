@@ -5,20 +5,20 @@ from django.contrib.auth.models         import (AbstractBaseUser, BaseUserManage
 
 class UserManager(BaseUserManager):
 
-    def create_user(self, username, email, origen, cedula, nombre_apellido, password = None):
+    def create_user(self, username, email, tipo_documento, numero, nombre_apellido, password = None):
         user = self.model(
                             username        = username,
                             email           = self.normalize_email(email),
-                            origen          = origen,
-                            cedula          = cedula,
+                            tipo_documento          = tipo_documento,
+                            numero          = numero,
                             nombre_apellido = nombre_apellido,
                             )
         user.set_password(password)
         user.save()
         return user
 
-    def create_superuser(self, username, email, origen, cedula, nombre_apellido, password = None):
-        user                = self.create_user(username, email, origen, cedula, nombre_apellido, password)
+    def create_superuser(self, username, email, tipo_documento, numero, nombre_apellido, password = None):
+        user                = self.create_user(username, email, tipo_documento, numero, nombre_apellido, password)
         user.is_superuser   = True
         user.is_staff       = True
         user.save()
@@ -26,18 +26,18 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    V    =   'V'
-    E    =   'E'
+    SSN    =   'SSN'
+    ITIN    =   'ITIN'
 
-    ORIGEN  =   (
-                    (V,  'V'),
-                    (E,  'E'),
+    TIPO_DOCUMENTO  =   (
+                    (SSN,  'SSN'),
+                    (ITIN,  'ITIN'),
                 )
 
     username                = models.CharField('Usuario',                   max_length =  20,   unique = True,                              )
     email                   = models.EmailField('Correo',                   max_length = 255,   unique = True                               )
-    origen                  = models.CharField('Origen',                    max_length =   1,   choices = ORIGEN                            )
-    cedula                  = models.IntegerField('Cédula',                                                                                 )
+    tipo_documento          = models.CharField('Tipo de documento',         max_length =   4,   choices = TIPO_DOCUMENTO                            )
+    numero                  = models.IntegerField('Número',                                                                                 )
     nombre_apellido         = models.CharField('Nom/Ape',                   max_length = 255,                   blank = True, null = True   )
     pregunta_01             = models.CharField('Preg. 01',                  max_length = 255,   default = 'INDETERMINADA'                   )
     pregunta_02             = models.CharField('Preg. 02',                  max_length = 255,   default = 'INDETERMINADA'                   )
@@ -59,10 +59,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         db_table            = 'cuenta\".\"usuario'
         verbose_name        = 'Usuario'
         verbose_name_plural = 'Usuarios'
-        unique_together     = ('origen','cedula')
+        unique_together     = ('tipo_documento','numero')
 
     USERNAME_FIELD  = 'username'
-    REQUIRED_FIELDS = ['origen','cedula','nombre_apellido','email']
+    REQUIRED_FIELDS = ['tipo_documento','numero','nombre_apellido','email']
 
     def __str__(self):
         return self.username

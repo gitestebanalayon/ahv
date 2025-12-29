@@ -95,13 +95,13 @@ class CustomUserAdmin(UserAdmin, ModelAdmin):
             reactivados
         ) % reactivados, messages.SUCCESS)
 
-    prepopulate_fields = {'username': ('origen', 'cedula', 'email',)}
+    prepopulate_fields = {'username': ('tipo_documento', 'numero', 'email',)}
     
     add_form = CustomUserCreationForm
     change_password_form = AdminPasswordChangeForm
     
     # Campos que se mostrarán en la lista
-    list_display = ('username', 'cedula', 'email', 'is_active', 'is_staff',  'editar', 'eliminar')
+    list_display = ('username', 'tipo_documento', 'numero', 'email', 'is_active', 'is_staff',  'editar', 'eliminar')
     list_display_links = None
     actions = ['desactivar', 'activar']
     
@@ -109,10 +109,10 @@ class CustomUserAdmin(UserAdmin, ModelAdmin):
     list_filter = []
     
     # Campos de búsqueda (opcional)
-    search_fields = ['username', 'cedula', 'email']
+    search_fields = ['username', 'numero', 'email']
     
     # Ordenamiento
-    ordering = ['username', 'cedula', 'email']
+    ordering = ['username', 'numero', 'email']
     
     # Configuración de los formularios de edición y creación
     fieldsets = [
@@ -120,7 +120,7 @@ class CustomUserAdmin(UserAdmin, ModelAdmin):
             ("Credenciales"), 
             {
                 "classes":  ["tab"],
-                "fields":   ['username','origen','cedula','nombre_apellido','email','password'],
+                "fields":   ['username','tipo_documento','numero','nombre_apellido','email','password'],
             }
         ),
         (
@@ -154,7 +154,7 @@ class CustomUserAdmin(UserAdmin, ModelAdmin):
         (
             None,   {
                 'classes': ('wide',),
-                'fields': ('username','origen','cedula','nombre_apellido','email','password1','password2')
+                'fields': ('username','tipo_documento','numero','nombre_apellido','email','password1','password2')
             }
         ),
     )

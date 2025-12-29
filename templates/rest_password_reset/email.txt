@@ -1,0 +1,15 @@
+Restablecer Contraseña
+
+Hola {{ username }},
+
+Has solicitado restablecer tu contraseña AHV.
+
+Tu token de restablecimiento es: {{ reset_password_token.key }}
+
+Para restablecer tu contraseña, visita este enlace:
+http://127.0.0.1:8000/password_reset/confirm/?token={{ reset_password_token.key }}
+
+Si no solicitaste este restablecimiento, ignora este email.
+
+---
+Este es un email automático, por favor no respondas.
