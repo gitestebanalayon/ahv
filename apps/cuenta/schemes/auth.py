@@ -3,7 +3,7 @@ from ninja import Schema
 from ninja_extra.exceptions import APIException
 from pydantic import field_validator
 from typing import List, Optional
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from apps.cuenta.models import User
 
 from apps.cuenta.tokens import CustomAccessToken, CustomRefreshToken
@@ -12,10 +12,17 @@ from apps.cuenta.exceptions.auth import (
     InvalidPasswordException
 )
 
+class PermissionSchema(ModelSchema):
+    class Config:
+        model = Permission
+        include = ("codename", "name")
+
 class GroupSchema(ModelSchema):
+    permissions: List[PermissionSchema] = []  # Array vacío por defecto
+    
     class Config:
         model = Group
-        include = ("id", "name",)
+        include = ("name",)
 
 class UserSchema(ModelSchema):
     groups: List[GroupSchema] = []  # Array vacío por defecto
@@ -23,12 +30,8 @@ class UserSchema(ModelSchema):
     class Config:
         model = User
         include = (
-            "id",
             "username", 
-            "tipo_documento",
-            "numero",
             "email",
-            "is_superuser",
         )
 
 class MyTokenObtainPairOutSchema(Schema):
