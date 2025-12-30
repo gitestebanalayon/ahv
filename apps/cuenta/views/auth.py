@@ -7,6 +7,9 @@ from django_rest_passwordreset.models import ResetPasswordToken
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
+from django.db import transaction
+from django.contrib.auth.models import Group
+from enum import Enum
 
 from configuracion.schemes import SucessSchema, ErrorSchema
 
@@ -21,6 +24,10 @@ from apps.cuenta.schemes.auth import (
     MyTokenObtainPairInputSchema,
     MyTokenObtainPairSchema
 )
+
+class TipoDocumentoEnum(str, Enum):
+    SSN = "SSN"
+    ITIN = "ITIN"
 
 # CONTROLADOR PARA RESTABLECER LA CONTRASEÑA
 @api_controller('/password_reset', tags=['Password Reset'], auth=None)
@@ -101,6 +108,63 @@ class CustomResetPasswordController:
         except Exception as e:
             # print(f"❌ Error en custom password reset: {e}")
             return 400, {"message": f"Error: {str(e)}"}
+
+@api_controller('/crear-cuenta', tags=['Auth'], auth=None)
+class CrearCuentaController:
+    """Controller for creating new user accounts"""
+    
+    @route.post(
+        "",
+        response={201: SucessSchema, 400: ErrorSchema},
+        url_name="crear-cuenta"
+    )
+    def crear_cuenta(
+            self,
+            username: str,
+            nombre_apellido: str,
+            email: str,
+            tipo_documento: TipoDocumentoEnum,
+            numero: int,
+            password: str
+        ):
+        """Create a new user account and add to Clientes group"""
+        try:
+            User = get_user_model()
+            
+            # Validaciones
+            if User.objects.filter(username=username).exists():
+                return 400, {"message": "El nombre de usuario ya existe"}
+            
+            if User.objects.filter(email=email).exists():
+                return 400, {"message": "El correo electrónico ya está en uso"}
+            
+            if User.objects.filter(tipo_documento=tipo_documento, numero=numero).exists():
+                return 400, {"message": f"Ya existe un usuario con el documento {tipo_documento.name} {numero}"}
+            
+            # Crear usuario y asignar al grupo Clientes en una transacción
+            with transaction.atomic():
+                # Crear usuario
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=password,  # Django hashea automáticamente
+                    nombre_apellido=nombre_apellido,
+                    tipo_documento=tipo_documento.upper(),  # Guardar en mayúsculas
+                    numero=numero
+                )
+                user.is_active = True
+                user.save()
+                
+                # Obtener o crear el grupo "Clientes" usando get_or_create
+                grupo_clientes, created = Group.objects.get_or_create(name='Clientes')
+                # Agregar usuario al grupo
+                user.groups.add(grupo_clientes)
+                
+            
+            return 201, {"message": "Cuenta creada exitosamente."}
+        
+        except Exception as e:
+            return 400, {"message": f"Error al crear la cuenta: {str(e)}"}
 
 # CONTROLADOR PARA LA AUTENTICACIÓN
 @api_controller("", tags=['Auth'], auth=JWTAuth())

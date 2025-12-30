@@ -7,6 +7,7 @@ from pydantic                                   import ValidationError as Pydant
 
 from django_rest_passwordreset.controller       import ResetPasswordController
 from apps.cuenta.views.auth                     import CustomResetPasswordController
+from apps.cuenta.views.auth                     import CrearCuentaController
 from apps.cuenta.views.auth                     import AuthController
 from apps.cuenta.views.usuario                  import UsuarioController
 
@@ -90,6 +91,7 @@ def handle_pydantic_validation_error(request, exc):
 api.register_controllers(
     ResetPasswordController,
     CustomResetPasswordController,
+    CrearCuentaController,
     AuthController,
     UsuarioController
 )
