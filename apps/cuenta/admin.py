@@ -52,7 +52,7 @@ class CustomUserAdmin(UserAdmin, ModelAdmin):
         # Si el usuario es el mismo que el logueado, no mostrar enlace de eliminación
         if request and obj == request.user:
             return format_html(
-                '<span title="No te puedes eliminar a ti mismo" class="badge bg-secondary">'
+                '<span title="No está permitida la autoeliminación de la cuenta" class="badge bg-secondary">'
                 '<span class="material-symbols-outlined" style="font-size: 16px;">admin_panel_settings</span>'
                 '</span>'
             )
