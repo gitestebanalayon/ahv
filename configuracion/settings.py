@@ -75,6 +75,7 @@ MIDDLEWARE      =   [
                         'django.contrib.sessions.middleware.SessionMiddleware',
                         # Incluida
                         "corsheaders.middleware.CorsMiddleware",
+                        "django.middleware.locale.LocaleMiddleware",
                         'django.middleware.common.CommonMiddleware',
                         'django.middleware.csrf.CsrfViewMiddleware',
                         'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -146,11 +147,17 @@ AUTHENTICATION_BACKENDS     =   [
                                     #'guardian.backends.ObjectPermissionBackend',
                                 ]
 
-
 LANGUAGE_CODE       = 'es-ve'
+
+LANGUAGES = (
+    ("es", _("Spanish")),
+    ("en", _("English")),
+)
+
 TIME_ZONE           = 'America/Caracas'
 USE_I18N            = True
 DEFAULT_AUTO_FIELD  = 'django.db.models.BigAutoField'
+
 
 STATIC_URL          = 'static/'
 STATICFILES_DIRS    = [os.path.join(BASE_DIR, 'staticfiles/'),]
@@ -290,47 +297,21 @@ UNFOLD = {
     "SITE_HEADER": "Panel de Administración",
     "SITE_SUBHEADER": "Bienvenido al sistema",
     "SITE_SYMBOL": "speed",
+    "SHOW_LANGUAGES": True,
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": False,
     "SHOW_BACK_BUTTON": True,
     "ENVIRONMENT": "configuracion.settings.environment_callback",
     "DASHBOARD_CALLBACK": "configuracion.settings.dashboard_callback",
-    "THEME": "light",  # "light", "dark" o "auto"
-    "SHOW_THEME_TOGGLE": True,
     "LOGIN": {
         # "image": lambda request: static("login-bg.jpg"),
     },
-    "COLOR_SCHEME": {
-        # Colores específicos para modo claro
-        "light": {
-            "primary": {
-                "50": "oklch(97.7% .014 308.299)",
-                "100": "oklch(94.6% .033 307.174)",
-                "200": "oklch(90.2% .063 306.703)",
-                "300": "oklch(82.7% .119 306.383)",
-                "400": "oklch(71.4% .203 305.504)",
-                "500": "oklch(62.7% .265 303.9)",
-                "600": "oklch(55.8% .288 302.321)",
-                "700": "oklch(49.6% .265 301.924)",
-                "800": "oklch(43.8% .218 303.724)",
-                "900": "oklch(38.1% .176 304.987)",
-                "950": "oklch(29.1% .149 302.717)",
-            },
-        },
-        # Colores específicos para modo oscuro
-        "dark": {
-            "primary": {
-                "50": "oklch(97.7% .014 308.299)",
-                "100": "oklch(94.6% .033 307.174)",
-                "200": "oklch(90.2% .063 306.703)",
-                "300": "oklch(82.7% .119 306.383)",
-                "400": "oklch(71.4% .203 305.504)",
-                "500": "oklch(62.7% .265 303.9)",
-                "600": "oklch(55.8% .288 302.321)",
-                "700": "oklch(49.6% .265 301.924)",
-                "800": "oklch(43.8% .218 303.724)",
-                "900": "oklch(38.1% .176 304.987)",
-                "950": "oklch(29.1% .149 302.717)",
+    "EXTENSIONS": {
+        "modeltranslation": {
+            "flags": {
+                "en": "🇬🇧",
+                "fr": "🇫🇷",
+                "nl": "🇧🇪",
             },
         },
     },
@@ -354,6 +335,50 @@ UNFOLD = {
         },
         # Puedes añadir más enlaces aquí
     ],
+     
+     
+     "COLORS": 
+                {
+                    "base": 
+                    {
+                        #"50": "oklch(98.5% .002 247.839)",
+                        #"100": "oklch(96.7% .003 264.542)",
+                        #"200": "oklch(92.8% .006 264.531)",
+                        #"300": "oklch(87.2% .01 258.338)",
+                        #"400": "oklch(70.7% .022 261.325)",
+                        #"500": "oklch(55.1% .027 264.364)",
+                        "600": "oklch(44.6% .03 256.802)",
+                        #"700": "oklch(37.3% .034 259.733)",
+                        #"800": "oklch(27.8% .033 256.848)",
+                        #"900": "oklch(21% .034 264.665)",
+                        #"950": "oklch(13% .028 261.692)",
+                    },
+                    
+                    "primary": 
+                    {
+                        #" 50": "oklch(97.7% .014 308.299)",
+                        #"100": "oklch(94.6% .033 307.174)",
+                        #"200": "oklch(90.2% .063 306.703)",
+                        #"300": "oklch(82.7% .119 306.383)",
+                        #"400": "oklch(71.4% .203 305.504)",
+                        #"500": "oklch(62.7% .265 303.9)",
+                        "600": "oklch(48.8% .243 264.376)",
+                        #"700": "oklch(49.6% .265 301.924)",
+                        #"800": "oklch(43.8% .218 303.724)",
+                        #"900": "oklch(38.1% .176 304.987)",
+                        #"950": "oklch(29.1% .149 302.717)",
+                    },
+                    
+                    "font": 
+                    {
+                        "subtle-light":     "var(--color-base-500)",  # text-base-500
+                        "subtle-dark":      "var(--color-base-400)",  # text-base-400
+                        "default-light":    "var(--color-base-600)",  # text-base-600
+                        "default-dark":     "var(--color-base-300)",  # text-base-300
+                        "important-light":  "var(--color-base-900)",  # text-base-900
+                        "important-dark":   "var(--color-base-100)",  # text-base-100
+                    },
+                },
 }
 
 

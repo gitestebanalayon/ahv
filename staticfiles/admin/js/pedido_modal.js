@@ -64,20 +64,20 @@ function createModal() {
                                             <span class="material-symbols-outlined mr-2">info</span>
                                             Mas detalles
                                         </div>
-                                        <div class="ml-auto inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200">
+                                        <div class="ml-auto inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">
                                             <span id="pedido-modal-estado"></span>
                                         </div>
                                     </h3>
                                     <div class="flex flex-col rounded-default shadow-xs dark:border-base-700">
                                         <div class="grid grid-cols-2 gap-4">
                                             <div>
-                                                <div class="border dark:border-base-700 group flex flex-col overflow-hidden rounded-default transition-all bg-white-100  dark:bg-base-900 ">
+                                                <div class="border dark:border-base-700 group flex flex-col overflow-hidden rounded-default transition-all bg-white-100  dark:bg-base-800 ">
                                                     <span class="flex items-center justify-center grow font-semibold p-2">
                                                         <span class="material-symbols-outlined align-middle text-sm mr-2" style="font-size: 24px;">assignment_ind</span>
                                                         Datos del cliente
                                                     </span>
 
-                                                    <div class="block border-t border-base-200 px-6 py-4 dark:border-base-800">
+                                                    <div class="block border-t border-base-200 px-6 py-4 dark:border-base-700">
                                                         <p class=""><strong>Usuario:</strong> <span id="pedido-modal-cliente"></span></p>
                                                         <p class=""><strong>Tipo Documento:</strong> <span id="pedido-modal-tipo-documento"></span></p>
                                                         <p class=""><strong>Número:</strong> <span id="pedido-modal-numero"></span></p>
@@ -85,13 +85,13 @@ function createModal() {
                                                 </div>
                                             </div>
                                             <div>
-                                                <div class="border dark:border-base-700 group flex flex-col overflow-hidden rounded-default transition-all bg-white-100  dark:bg-base-900 ">
+                                                <div class="border dark:border-base-700 group flex flex-col overflow-hidden rounded-default transition-all bg-white-100  dark:bg-base-800 ">
                                                     <span class="flex items-center justify-center grow font-semibold p-2">
                                                         <span class="material-symbols-outlined align-middle text-sm mr-2" style="font-size: 24px;">assignment_ind</span>
                                                         Datos de entrega
                                                     </span>
 
-                                                    <div class="block border-t border-base-200 px-6 py-4 dark:border-base-800" style="height: 92px; overflow-y: auto;">
+                                                    <div class="block border-t border-base-200 px-6 py-4 dark:border-base-700" style="height: 92px; overflow-y: auto;">
                                                         <p class=""><strong>Fecha entrega:</strong> <span id="pedido-modal-fecha-entrega"></span></p>
                                                         <p class=""><strong>Hora entrega:</strong> <span id="pedido-modal-hora-entrega"></span></p>
                                                         <p class=""><strong>Dirección entrega:</strong> <span id="pedido-modal-direccion"></span></p>
@@ -100,7 +100,7 @@ function createModal() {
                                             </div>
 
                                             <div>
-                                                <div class="border dark:border-base-700 group flex flex-col overflow-hidden rounded-default transition-all bg-white-100  dark:bg-base-900 ">
+                                                <div class="border dark:border-base-700 group flex flex-col overflow-hidden rounded-default transition-all bg-white-100  dark:bg-base-800 ">
                                                     
 
                                                     <div class=" block px-6 py-4 dark:border-base-800">
@@ -111,7 +111,7 @@ function createModal() {
                                             </div>
 
                                             <div>
-                                                <div class="border dark:border-base-700 group flex flex-col overflow-hidden rounded-default transition-all bg-white-100  dark:bg-base-900 ">
+                                                <div class="border dark:border-base-700 group flex flex-col overflow-hidden rounded-default transition-all bg-white-100  dark:bg-base-800 ">
                                                    
 
                                                     <div class="text-green-100 block px-6 py-4 dark:border-base-800">
@@ -124,7 +124,7 @@ function createModal() {
 
                                             
                                         </div>
-                                        <div class="mt-4 border dark:border-base-700 px-6 py-4 rounded-default" style="height: 92px; overflow-y: auto;">
+                                        <div class="bg-white-100 mt-4 border dark:border-base-700 px-6 py-4 rounded-default dark:bg-base-800" style="height: 92px; overflow-y: auto;">
                                                 <p class=""><strong>Observación:</strong> <span
                                                         id="pedido-modal-observacion"></span></p>
                                             </div>
@@ -135,9 +135,9 @@ function createModal() {
 
                         <!-- Pie del modal -->
                         <div
-                            class="bg-white border-t border-base-200 flex flex-col gap-2 p-3 py-2.5 dark:bg-base-800 dark:border-base-700">
+                            class="bg-white flex flex-col gap-2 p-3 pt-1 dark:bg-base-800">
                             <div
-                                class="border border-base-100 grid grid-cols-3 gap-4 p-4 rounded bg-gray-50 dark:bg-base-800 dark:border-base-700">
+                                class="border border-base-200 grid grid-cols-3 gap-4 p-4 rounded bg-gray-50 dark:bg-base-800 dark:border-base-700">
                                 <div>
                                     <p class=""><strong>Total Yardas:</strong> <span id="pedido-modal-total-yardas"></span></p>
                                 </div>

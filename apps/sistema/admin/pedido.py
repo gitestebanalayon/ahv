@@ -71,7 +71,7 @@ class PedidoAdmin(ModelAdmin):
         )
 
     def estado_pedido(self, obj):
-        return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200">{}</span>', obj.estado_pedido_nombre)
+        return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">{}</span>', obj.estado_pedido_nombre)
         
         
     list_display        = ('cliente', 'conductor', 'vehiculo', 'estado_pedido', 'mas_detalles',  'editar','eliminar')

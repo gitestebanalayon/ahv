@@ -41,9 +41,8 @@ class VehiculoAdmin(ModelAdmin):
         return format_html('<a class="btn" href="/admin/sistema/vehiculo/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
 
     def estado_vehiculo(self, obj):
-        return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-200">{}</span>', obj.estado_vehiculo_nombre)
+        return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">{}</span>', obj.estado_vehiculo_nombre)
     
-   
     list_display        = ('matricula', 'alias' ,'estado_vehiculo','editar','eliminar')
     list_filter         = []
     search_fields       = []

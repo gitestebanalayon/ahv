@@ -41,7 +41,7 @@ class ConductorAdmin(ModelAdmin):
         return format_html('<a class="btn" href="/admin/sistema/conductor/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
 
     def estado_conductor(self, obj):
-        return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-200">{}</span>', obj.estado_conductor_nombre)
+        return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">{}</span>', obj.estado_conductor_nombre)
         
     def tiene_vehiculo(self, obj):
         if obj.vehiculo_id:
