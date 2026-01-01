@@ -6,7 +6,7 @@ class PedidoAsignacion {
         this.vehiculoSelect = null;
         this.estadoSelect = null;
         this.vehiculoOriginal = '';
-        this.apiBaseUrl = 'http://127.0.0.1:8000/';
+        this.apiBaseUrl = 'https://ahvadmin.pythonanywhere.com/';
         
         this.init();
     }
