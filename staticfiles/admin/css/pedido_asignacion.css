@@ -1,7 +1,7 @@
 /* static/admin/css/pedido_asignacion.css */
 
 /* Estilos para el mensaje de carga */
-.loading-vehiculo {
+/* .loading-vehiculo {
     display: inline-block;
     margin-left: 10px;
     padding: 3px 8px;
@@ -10,10 +10,10 @@
     border-radius: 4px;
     font-size: 12px;
     color: #6c757d;
-}
+} */
 
 /* Estilos para el mensaje de estado */
-.estado-message {
+/* .estado-message {
     margin-top: 5px;
     padding: 8px;
     border-radius: 4px;
@@ -37,11 +37,11 @@
     background-color: #d1ecf1;
     color: #0c5460;
     border: 1px solid #bee5eb;
-}
+} */
 
 /* Estilos para el campo vehiculo cuando está cargando */
-.field-vehiculo.loading select {
+/* .field-vehiculo.loading select {
     background-color: #f8f9fa;
     opacity: 0.7;
     cursor: wait;
-}
+} */
