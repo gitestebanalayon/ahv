@@ -39,7 +39,6 @@ Thumbs.db
 
 # Media y staticfiles
 media/
-staticfiles/
 uploads/
 
 # Logs

@@ -38,6 +38,8 @@ BASE_APPS = [
 
 LOCAL_APPS = [
     'apps.cuenta',
+    'apps.auxiliares',
+    'apps.sistema',
     'apps.frontend',
 ]
 
@@ -293,7 +295,7 @@ UNFOLD = {
     "SHOW_BACK_BUTTON": True,
     "ENVIRONMENT": "configuracion.settings.environment_callback",
     "DASHBOARD_CALLBACK": "configuracion.settings.dashboard_callback",
-    "THEME": "dark",
+    "THEME": "light",  # "light", "dark" o "auto"
     "SHOW_THEME_TOGGLE": True,
     "LOGIN": {
         # "image": lambda request: static("login-bg.jpg"),
@@ -333,43 +335,25 @@ UNFOLD = {
         },
     },
     "SIDEBAR": {
-        "show_search": True,
+        "show_search": False,
         "show_all_applications": True,
-        "navigation": [
-            {
-                "title": _("Navegación"),
-                "separator": True,
-                "items": [
-                    {
-                        "title": _("Dashboard"),
-                        "icon": "dashboard",
-                        "link": "/admin/",
-                        "permission": lambda request: request.user.is_superuser,  # Solo superusuarios
-                    },
-                    {
-                        "title": _("Usuarios"),
-                        "icon": "account_circle",
-                        "link": "/admin/cuenta/user",
-                        # Permiso específico para ver usuarios
-                        "permission": lambda request: (
-                            request.user.is_authenticated and 
-                            request.user.has_perm('cuenta.view_user')
-                        ),
-                    },
-                    {
-                        "title": _("Grupos"),
-                        "icon": "people",
-                        "link": "/admin/auth/group",
-                        # Permiso específico para ver grupos
-                        "permission": lambda request: (
-                            request.user.is_authenticated and 
-                            request.user.has_perm('auth.view_group')
-                        ),
-                    },
-                ],
-            },
-        ],
     },
+     "SITE_DROPDOWN": [
+        {
+            "icon": "diamond",  # Icono de Material Symbols opcional
+            "title": _("Mi sitio externo"),
+            "link": "https://ejemplo.com",
+            "attrs": {
+                "target": "_blank",  # Abre el enlace en una nueva pestaña
+            },
+        },
+        {
+            "icon": "dashboard",
+            "title": _("Panel de administración"),
+            "link": reverse_lazy("admin:index"),
+        },
+        # Puedes añadir más enlaces aquí
+    ],
 }
 
 

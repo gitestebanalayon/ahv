@@ -1,6 +1,7 @@
 from ninja import Schema, Field
 from pydantic import EmailStr, field_validator, model_validator
 from typing import Type
+from enum import Enum
 
 from apps.cuenta.models import User
 
@@ -8,10 +9,14 @@ from apps.cuenta.exceptions.auth import (
     BadRequestException,
 )
 
+class TipoDocumentoEnum(str, Enum):
+    SSN = "SSN"
+    ITIN = "ITIN"
+
 class CreateUserSchema(Schema):
     username: str
     nombre_apellido: str
-    tipo_documento: str
+    tipo_documento: TipoDocumentoEnum
     numero: str
     email: EmailStr
     password: str

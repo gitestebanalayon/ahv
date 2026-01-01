@@ -17,7 +17,8 @@ from ninja_extra.exceptions import APIException
 from apps.cuenta.exceptions.auth import (
     UnauthorizedException,
     UserNotFoundInSystemException,
-    InvalidPasswordException
+    InvalidPasswordException,
+    BadRequestException,
 )
 from apps.cuenta.schemes.auth import (
     MyTokenObtainPairOutSchema,
@@ -25,9 +26,12 @@ from apps.cuenta.schemes.auth import (
     MyTokenObtainPairSchema
 )
 
-class TipoDocumentoEnum(str, Enum):
-    SSN = "SSN"
-    ITIN = "ITIN"
+from apps.cuenta.schemes.usuario import (
+    CreateUserSchema,
+)
+
+
+
 
 # CONTROLADOR PARA RESTABLECER LA CONTRASEÑA
 @api_controller('/password_reset', tags=['Password Reset'], auth=None)
@@ -115,45 +119,19 @@ class CrearCuentaController:
     
     @route.post(
         "",
-        response={201: SucessSchema, 400: ErrorSchema},
+        response={201: SucessSchema, 400: ErrorSchema, 422: ErrorSchema, 403: ErrorSchema},
         url_name="crear-cuenta"
     )
     def crear_cuenta(
-            self,
-            username: str,
-            nombre_apellido: str,
-            email: str,
-            tipo_documento: TipoDocumentoEnum,
-            numero: int,
-            password: str
+            self, user_schema: CreateUserSchema
         ):
         """Create a new user account and add to Clientes group"""
-        try:
-            User = get_user_model()
-            
-            # Validaciones
-            if User.objects.filter(username=username).exists():
-                return 400, {"message": "El nombre de usuario ya existe"}
-            
-            if User.objects.filter(email=email).exists():
-                return 400, {"message": "El correo electrónico ya está en uso"}
-            
-            if User.objects.filter(tipo_documento=tipo_documento, numero=numero).exists():
-                return 400, {"message": f"Ya existe un usuario con el documento {tipo_documento.name} {numero}"}
-            
+        try:           
             # Crear usuario y asignar al grupo Clientes en una transacción
             with transaction.atomic():
                 # Crear usuario
-                user = User.objects.create_user(
-                    username=username,
-                    email=email,
-                    password=password,  # Django hashea automáticamente
-                    nombre_apellido=nombre_apellido,
-                    tipo_documento=tipo_documento.upper(),  # Guardar en mayúsculas
-                    numero=numero
-                )
-                user.is_active = True
-                user.save()
+                
+                user = user_schema.create()
                 
                 # Obtener o crear el grupo "Clientes" usando get_or_create
                 grupo_clientes, created = Group.objects.get_or_create(name='Clientes')
@@ -163,8 +141,11 @@ class CrearCuentaController:
             
             return 201, {"message": "Cuenta creada exitosamente."}
         
+        except BadRequestException as e:
+            return 400, {"message": str(e.detail)}
+        
         except Exception as e:
-            return 400, {"message": f"Error al crear la cuenta: {str(e)}"}
+            return 400, {"message": f"Error al crear usuario: {str(e)}"}
 
 # CONTROLADOR PARA LA AUTENTICACIÓN
 @api_controller("", tags=['Auth'], auth=JWTAuth())

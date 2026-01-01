@@ -40,7 +40,7 @@ class CustomUserAdmin(UserAdmin, ModelAdmin):
     def editar(self, obj):
         return format_html(
             '<a title="Editar" class="btn btn-link" href="/admin/cuenta/user/{}/change/">'
-            '<span class="material-symbols-outlined">edit</span>'
+            '<span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span>'
             '</a>', 
             obj.id
         )
@@ -52,8 +52,8 @@ class CustomUserAdmin(UserAdmin, ModelAdmin):
         # Si el usuario es el mismo que el logueado, no mostrar enlace de eliminación
         if request and obj == request.user:
             return format_html(
-                '<span title="No está permitida la autoeliminación de la cuenta" class="badge bg-secondary">'
-                '<span class="material-symbols-outlined" style="font-size: 16px;">admin_panel_settings</span>'
+                '<span title="No está permitida la autoeliminación de la cuenta">'
+                '<span class="material-symbols-outlined text-green-700 dark:text-green-200" style="font-size: 16px;">admin_panel_settings</span>'
                 '</span>'
             )
         
@@ -61,13 +61,13 @@ class CustomUserAdmin(UserAdmin, ModelAdmin):
         if obj.is_superuser:
             return format_html(
                 '<span title="No se puede eliminar a un superusuario" class="badge bg-danger">'
-                '<span class="material-symbols-outlined" style="font-size: 16px;">admin_panel_settings</span>'
+                '<span class="material-symbols-outlined text-green-700 dark:text-green-200" style="font-size: 16px;">admin_panel_settings</span>'
                 '</span>'
             )
         
         return format_html(
             '<a title="Eliminar" class="btn btn-link" href="/admin/cuenta/user/{}/delete/">'
-            '<span class="material-symbols-outlined">delete</span>'
+            '<span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span>'
             '</a>', 
             obj.id
         )

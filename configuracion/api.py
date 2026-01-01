@@ -11,6 +11,8 @@ from apps.cuenta.views.auth                     import CrearCuentaController
 from apps.cuenta.views.auth                     import AuthController
 from apps.cuenta.views.usuario                  import UsuarioController
 
+from apps.sistema.views.conductor import router as conductor
+
 api = NinjaExtraAPI(
                         title           = "AHV",
                         description     = "API de AHV",
@@ -95,3 +97,5 @@ api.register_controllers(
     AuthController,
     UsuarioController
 )
+
+api.add_router("/conductor/",           conductor           )
