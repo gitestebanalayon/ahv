@@ -102,6 +102,6 @@ class PedidoAdmin(ModelAdmin):
     
     class Media:
         js = (
-            'admin/js/pedido_modal.js',
-            'admin/js/pedido_admin.js',
-            'admin/js/pedido_asignacion.js')
+            'staticfiles/admin/js/pedido_modal.js',
+            'staticfiles/admin/js/pedido_admin.js',
+            'staticfiles/admin/js/pedido_asignacion.js')
