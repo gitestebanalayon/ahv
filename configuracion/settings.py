@@ -160,9 +160,47 @@ MEDIA_ROOT          = os.path.join(BASE_DIR, 'media/')
 MEDIA_URL           = '/media/'
 
 
-CORS_ALLOW_ALL_ORIGINS          =   True # Si esta en True acepta peticiones de cualquier origen
-                                         # Si esta en True entonces `CORS_ALLOWED_ORIGINS` no tendra efecto
-CORS_ALLOW_CREDENTIALS          =   True
+CORS_ALLOW_ALL_ORIGINS = False  # Cambia a False en producción para mayor seguridad
+CORS_ALLOW_CREDENTIALS = True
+
+
+# Orígenes específicos permitidos (más seguro que ALLOW_ALL_ORIGINS)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",      # React development server
+    "http://127.0.0.1:3000",      # React development server
+    "http://localhost:5173",      # Vite development server
+    "http://127.0.0.1:5173",      # Vite development server
+    "http://localhost:8000",      # Django development server
+    "http://127.0.0.1:8000",      # Django development server
+    # Agrega aquí tus dominios de producción cuando los tengas
+    "https://ahvadmin.pythonanywhere.com",
+    "https://ahvadmin.pythonanywhere.com/admin",
+]
+
+# Métodos HTTP permitidos
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+# Headers permitidos
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+
 
 '''
 CORS_ALLOWED_ORIGINS =  [
