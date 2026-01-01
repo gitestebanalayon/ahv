@@ -36,9 +36,9 @@ class FiltroNombre(TextFilter):
 class EstadoConductorAdmin(ModelAdmin):
 
     def editar(self, obj):
-        return format_html('<a class="btn" href="/admin/auxiliares/estado_conductor/{}/change/"><span class="material-symbols-outlined">edit</span></a>', obj.id)
+        return format_html('<a class="btn" href="/admin/auxiliares/estadoconductor/{}/change/"><span class="material-symbols-outlined">edit</span></a>', obj.id)
     def eliminar(self, obj):
-        return format_html('<a class="btn" href="/admin/auxiliares/estado_conductor/{}/delete/"><span class="material-symbols-outlined">delete</span></a>', obj.id)
+        return format_html('<a class="btn" href="/admin/auxiliares/estadoconductor/{}/delete/"><span class="material-symbols-outlined">delete</span></a>', obj.id)
 
     list_display        = ('nombre','estatus','editar','eliminar')
     list_filter         = []

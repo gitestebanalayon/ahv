@@ -36,10 +36,10 @@ class FiltroNombre(TextFilter):
 class EstadoVehiculoAdmin(ModelAdmin):
 
     def editar(self, obj):
-        return format_html('<a class="btn" href="/admin/auxiliares/estado_vehiculo/{}/change/"><span class="material-symbols-outlined">edit</span></a>', obj.id)
+        return format_html('<a class="btn" href="/admin/auxiliares/estadovehiculo/{}/change/"><span class="material-symbols-outlined">edit</span></a>', obj.id)
 
     def eliminar(self, obj):
-        return format_html('<a class="btn" href="/admin/auxiliares/estado_vehiculo/{}/delete/"><span class="material-symbols-outlined">delete</span></a>', obj.id)
+        return format_html('<a class="btn" href="/admin/auxiliares/estadovehiculo/{}/delete/"><span class="material-symbols-outlined">delete</span></a>', obj.id)
 
 
     # @admin.action(permissions  = ["change"])
