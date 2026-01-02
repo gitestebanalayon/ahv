@@ -5,6 +5,7 @@ from django.utils.http              import urlencode
 from django.urls                    import reverse
 
 from unfold.admin                   import ModelAdmin
+from unfold.paginator               import InfinitePaginator
 from unfold.sections                import TemplateSection
 from unfold.contrib.filters.admin   import (
     TextFilter,
@@ -24,6 +25,10 @@ from apps.sistema.models.pedido        import Pedido
 
 @admin.register(Pedido)
 class PedidoAdmin(ModelAdmin):
+     # Cambia esto para mostrar 10 registros por página
+    list_per_page = 10
+    
+  
 
     def editar(self, obj):
         return format_html('<a class="btn" href="/admin/sistema/pedido/{}/change/"><span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span></a>', obj.id)

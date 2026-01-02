@@ -34,6 +34,7 @@ class FiltroNombre(TextFilter):
 
 @admin.register(Conductor)
 class ConductorAdmin(ModelAdmin):
+    list_per_page = 10
 
     def editar(self, obj):
         return format_html('<a class="btn" href="/admin/sistema/conductor/{}/change/"><span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span></a>', obj.id)

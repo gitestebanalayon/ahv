@@ -20,6 +20,7 @@ class CustomUserCreationForm(UserCreationForm):
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin, ModelAdmin):
+    list_per_page = 10
     list_filter_sheet = False
     list_filter_position = "top"
     list_filter_submit = True
