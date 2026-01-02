@@ -297,7 +297,7 @@ UNFOLD = {
     "SITE_HEADER": "Panel de Administración",
     "SITE_SUBHEADER": "Bienvenido al sistema",
     "SITE_SYMBOL": "speed",
-    "SHOW_LANGUAGES": True,
+    # "SHOW_LANGUAGES": True,
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": False,
     "SHOW_BACK_BUTTON": True,
@@ -306,15 +306,15 @@ UNFOLD = {
     "LOGIN": {
         # "image": lambda request: static("login-bg.jpg"),
     },
-    "EXTENSIONS": {
-        "modeltranslation": {
-            "flags": {
-                "en": "🇬🇧",
-                "fr": "🇫🇷",
-                "nl": "🇧🇪",
-            },
-        },
-    },
+    # "EXTENSIONS": {
+    #     "modeltranslation": {
+    #         "flags": {
+    #             "en": "🇬🇧",
+    #             "fr": "🇫🇷",
+    #             "nl": "🇧🇪",
+    #         },
+    #     },
+    # },
     "SIDEBAR": {
         "show_search": False,
         "show_all_applications": True,

@@ -9,8 +9,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Hacer el campo readonly y cambiar estilo
     if (precioTotalField) {
         precioTotalField.readOnly = true;
-        precioTotalField.style.backgroundColor = '#f8f9fa';
-        precioTotalField.style.color = '#495057';
+        // precioTotalField.style.backgroundColor = '#f8f9fa';
+        precioTotalField.style.color = '#757b81ff';
         
         // Prevenir cualquier edición manual
         precioTotalField.addEventListener('keydown', function(e) {

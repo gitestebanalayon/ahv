@@ -77,7 +77,7 @@ function createModal() {
                                                         Datos del cliente
                                                     </span>
 
-                                                    <div class="block border-t border-base-200 px-6 py-4 dark:border-base-700">
+                                                    <div class="block border-t border-base-200 px-6 py-4 dark:border-base-700" style="height: 92px; overflow-y: auto;">
                                                         <p class=""><strong>Usuario:</strong> <span id="pedido-modal-cliente"></span></p>
                                                         <p class=""><strong>Tipo Documento:</strong> <span id="pedido-modal-tipo-documento"></span></p>
                                                         <p class=""><strong>Número:</strong> <span id="pedido-modal-numero"></span></p>
