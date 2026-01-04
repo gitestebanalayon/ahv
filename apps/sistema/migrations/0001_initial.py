@@ -197,7 +197,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "estado_pedido_nombre",
+                    "estado_pedido",
                     models.ForeignKey(
                         db_column="estado_pedido",
                         default="pendiente",

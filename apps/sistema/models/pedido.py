@@ -12,7 +12,7 @@ class Pedido(models.Model):
     hora_entrega            = models.TimeField('Hora Entrega',                                                                                              )
     direccion_entrega       = models.CharField('Dirección Entrega',     max_length = 255,                                                                   )
     observacion             = models.TextField('Observación',                                                  blank = True,   null = True                  )
-    estado_pedido_nombre    = models.ForeignKey(EstadoPedido,           on_delete = models.PROTECT, db_column="estado_pedido",     related_name = 'estado_pedido',    to_field = 'nombre',     default = 'pendiente'      )
+    estado_pedido    = models.ForeignKey(EstadoPedido,           on_delete = models.PROTECT, db_column="estado_pedido",     related_name = 'estado_pedido',    to_field = 'nombre',     default = 'pendiente'      )
     
     total_yardas            = models.DecimalField('Total Yardas',       max_digits = 10, decimal_places = 1,   blank = True, null = True                    )
     precio_yarda            = models.DecimalField('Precio Yarda',       max_digits = 10, decimal_places = 2,   blank = True, null = True                    )
@@ -28,4 +28,4 @@ class Pedido(models.Model):
         verbose_name_plural = 'Pedidos'
         
     def __str__(self):
-        return f'{self.cliente.username} - {self.estado_pedido_nombre}'
+        return f'{self.cliente.username} - {self.estado_pedido}'

@@ -68,18 +68,18 @@ class PedidoAdmin(ModelAdmin):
             obj.fecha_entrega,
             obj.hora_entrega,
             obj.direccion_entrega,
-            obj.estado_pedido_nombre,
+            obj.estado_pedido,
             obj.observacion or "",
             obj.total_yardas or "",
             obj.precio_yarda or "",
             obj.precio_total or ""
         )
 
-    def estado_pedido(self, obj):
-        return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">{}</span>', obj.estado_pedido_nombre)
+    def estado_pedidoo(self, obj):
+        return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">{}</span>', obj.estado_pedido)
         
         
-    list_display        = ('cliente', 'conductor', 'vehiculo', 'estado_pedido', 'mas_detalles',  'editar','eliminar')
+    list_display        = ('cliente', 'conductor', 'vehiculo', 'estado_pedidoo', 'mas_detalles',  'editar','eliminar')
     list_filter         = []
     search_fields       = []
     list_display_links  = None
@@ -93,7 +93,7 @@ class PedidoAdmin(ModelAdmin):
             ("Asignar pedido"), 
             {
                 "classes":  ["tab"],
-                "fields":   ['conductor','vehiculo','estado_pedido_nombre'],
+                "fields":   ['conductor','vehiculo','estado_pedido'],
             }
         ),
         (
