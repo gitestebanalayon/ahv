@@ -1,17 +1,15 @@
-// static/admin/js/pedido_asignacion_simple.js
-
 class PedidoAsignacion {
     constructor() {
         this.conductorSelect = null;
         this.vehiculoSelect = null;
-        this.apiBaseUrl = 'https://ahvadmin.pythonanywhere.com/';
+        this.apiBaseUrl = 'http://127.0.0.1:8000/';
         this.initialized = false;
         
         this.init();
     }
     
     init() {
-        console.log('Inicializando sistema de asignación de vehículo');
+        // console.log('Inicializando sistema de asignación de vehículo');
         
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.inicializarComponentes());
@@ -26,15 +24,15 @@ class PedidoAsignacion {
         
         const buscarCampos = () => {
             intento++;
-            console.log(`Intento ${intento} de encontrar campos...`);
+            // console.log(`Intento ${intento} de encontrar campos...`);
             
             this.encontrarCampos();
             
             if (this.conductorSelect) {
-                console.log('Campos encontrados:', {
-                    conductor: this.conductorSelect,
-                    vehiculo: this.vehiculoSelect
-                });
+                // console.log('Campos encontrados:', {
+                //     conductor: this.conductorSelect,
+                //     vehiculo: this.vehiculoSelect
+                // });
                 
                 this.configurarEventos();
                 this.procesarValoresIniciales();
@@ -53,10 +51,10 @@ class PedidoAsignacion {
         this.conductorSelect = this.buscarCampo(['id_conductor', 'conductor', 'conductor-select']);
         this.vehiculoSelect = this.buscarCampo(['id_vehiculo', 'vehiculo', 'vehiculo-select']);
         
-        console.log('Resultados de búsqueda:', {
-            conductor: this.conductorSelect?.id || this.conductorSelect?.name,
-            vehiculo: this.vehiculoSelect?.id || this.vehiculoSelect?.name
-        });
+        // console.log('Resultados de búsqueda:', {
+        //     conductor: this.conductorSelect?.id || this.conductorSelect?.name,
+        //     vehiculo: this.vehiculoSelect?.id || this.vehiculoSelect?.name
+        // });
         
         if (!this.vehiculoSelect) {
             this.buscarCamposPorEstructura();
@@ -147,7 +145,7 @@ class PedidoAsignacion {
             
             this.agregarTooltipVehiculo();
             
-            console.log('Campo vehículo configurado como solo lectura visual');
+            // console.log('Campo vehículo configurado como solo lectura visual');
         }
     }
     
@@ -282,7 +280,7 @@ class PedidoAsignacion {
         
         try {
             const url = `${this.apiBaseUrl}conductor/listar?conductor_id=${conductorId}`;
-            console.log('Consultando API:', url);
+            // console.log('Consultando API:', url);
             
             const response = await fetch(url);
             
@@ -291,7 +289,7 @@ class PedidoAsignacion {
             }
             
             const data = await response.json();
-            console.log('Respuesta API:', data);
+            // console.log('Respuesta API:', data);
             
             this.ocultarCargando();
             
@@ -456,7 +454,7 @@ class PedidoAsignacion {
     procesarValoresIniciales() {
         // Si ya hay un conductor seleccionado al cargar la página
         if (this.conductorSelect && this.conductorSelect.value) {
-            console.log('Procesando valores iniciales - Conductor ya seleccionado:', this.conductorSelect.value);
+            // console.log('Procesando valores iniciales - Conductor ya seleccionado:', this.conductorSelect.value);
             
             setTimeout(() => {
                 this.cargarVehiculoConductor(this.conductorSelect.value);

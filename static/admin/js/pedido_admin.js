@@ -32,8 +32,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (calculando) return;
         calculando = true;
         
-        const totalYardas = parseFloat(totalYardasField.value) || 0;
-        const precioYarda = parseFloat(precioYardaField.value) || 0;
+        const totalYardas = parseFloat(totalYardasField?.value) || 0;
+        const precioYarda = parseFloat(precioYardaField?.value) || 0;
         const precioTotal = totalYardas * precioYarda;
         
         if (precioTotalField) {
