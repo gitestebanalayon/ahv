@@ -47,6 +47,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     respuesta_03            = models.CharField('Resp. 03',                  max_length = 255,   default = 'INDETERMINADA'                   )
     fecha_registro          = models.DateTimeField('Fecha Registro',        auto_now_add = True                                             )
     #fecha_actualizacion     = models.DateTimeField('Fecha Actualización',   auto_now = True                                                 )
+    is_customer             = models.BooleanField('Es Cliente',                                  default = False                            )
     is_verified             = models.BooleanField('VERIFICADO',                                  default = True                             )
     is_active               = models.BooleanField('Esta Activo',                                 default = True                             )
     is_staff                = models.BooleanField('Personal de Confianza',                       default = False                            )
@@ -65,4 +66,28 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ['tipo_documento','numero','nombre_apellido','email']
 
     def __str__(self):
-        return self.username
+        return f"{self.tipo_documento}-{self.numero}"
+    
+
+class Customer(User):
+    """
+    Modelo proxy que representa solo usuarios que son clientes (is_customer = True)
+    """
+    class Meta:
+        proxy = True
+        verbose_name = 'Cliente'
+        verbose_name_plural = 'Clientes'
+    
+    def save(self, *args, **kwargs):
+        # Asegurar que siempre sea cliente
+        self.is_customer = True
+        super().save(*args, **kwargs)
+    
+    # ESTA ES LA PARTE CLAVE - Sobreescribir el manager
+    objects = UserManager()
+    
+    @classmethod
+    def get_queryset(cls):
+        # Filtrar solo los usuarios que son clientes
+        return super().get_queryset().filter(is_customer=True)
+    

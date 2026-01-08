@@ -41,7 +41,7 @@ class EstadoPedidoAdmin(ModelAdmin):
         return format_html('<a class="btn" href="/admin/auxiliares/estadopedido/{}/delete/"><span class="material-symbols-outlined">delete</span></a>', obj.id)
 
 
-    list_display        = ('nombre','estatus','editar','eliminar')
+    list_display        = ('nombre','is_delete','editar','eliminar')
     list_filter         = []
     search_fields       = []
     list_display_links  = None

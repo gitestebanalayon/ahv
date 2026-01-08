@@ -3,11 +3,13 @@ function showPedidoModal(button) {
     const cliente = button.getAttribute('data-cliente');
     const tipoDocumento = button.getAttribute('data-tipo-documento');
     const numero = button.getAttribute('data-numero');
-    const conductor = button.getAttribute('data-conductor');
-    const vehiculo = button.getAttribute('data-vehiculo');
+    // const conductor = button.getAttribute('data-conductor');
+    // const vehiculo = button.getAttribute('data-vehiculo');
     const fechaEntrega = button.getAttribute('data-fecha-entrega');
     const horaEntrega = button.getAttribute('data-hora-entrega');
     const direccion = button.getAttribute('data-direccion');
+    const agregados = button.getAttribute('data-agregados');
+    const slump = button.getAttribute('data-slump');
     const estado = button.getAttribute('data-estado');
     const observacion = button.getAttribute('data-observacion');
     const totalYardas = button.getAttribute('data-total-yardas');
@@ -28,12 +30,14 @@ function showPedidoModal(button) {
     document.getElementById('pedido-modal-cliente').innerText = cliente;
     document.getElementById('pedido-modal-tipo-documento').innerText = tipoDocumento;
     document.getElementById('pedido-modal-numero').innerText = numero;
-    document.getElementById('pedido-modal-conductor').innerText = conductor;
-    document.getElementById('pedido-modal-vehiculo').innerText = vehiculo;
+    // document.getElementById('pedido-modal-conductor').innerText = conductor;
+    // document.getElementById('pedido-modal-vehiculo').innerText = vehiculo;
     document.getElementById('pedido-modal-fecha-entrega').innerText = fechaEntrega;
     document.getElementById('pedido-modal-hora-entrega').innerText = horaEntrega;
     document.getElementById('pedido-modal-direccion').innerText = direccion;
     document.getElementById('pedido-modal-estado').innerText = estado;
+    document.getElementById('pedido-modal-agregados').innerText = agregados;
+    document.getElementById('pedido-modal-slump').innerText = slump;
     document.getElementById('pedido-modal-observacion').innerText = observacion || 'Sin observación';
     document.getElementById('pedido-modal-total-yardas').innerText = totalYardas || 'N/A';
     document.getElementById('pedido-modal-precio-yarda').innerText = precioYarda ? `$${parseFloat(precioYarda).toFixed(2)}` : 'N/A';
@@ -78,7 +82,7 @@ function createModal() {
                                                     </span>
 
                                                     <div class="block border-t border-base-200 px-6 py-4 dark:border-base-700" style="height: 92px; overflow-y: auto;">
-                                                        <p class=""><strong>Usuario:</strong> <span id="pedido-modal-cliente"></span></p>
+                                                        <p class=""><strong>Nombre:</strong> <span id="pedido-modal-cliente"></span></p>
                                                         <p class=""><strong>Tipo Documento:</strong> <span id="pedido-modal-tipo-documento"></span></p>
                                                         <p class=""><strong>Número:</strong> <span id="pedido-modal-numero"></span></p>
                                                     </div>
@@ -104,7 +108,7 @@ function createModal() {
                                                     
 
                                                     <div class=" block px-6 py-4 dark:border-base-800">
-                                                        <p class=""><strong>Conductor:</strong> <span id="pedido-modal-conductor"></span>
+                                                        <p class=""><strong>Agregados:</strong> <span id="pedido-modal-agregados"></span>
                                                 </p>
                                                     </div>
                                                 </div>
@@ -115,7 +119,7 @@ function createModal() {
                                                    
 
                                                     <div class="text-green-100 block px-6 py-4 dark:border-base-800">
-                                                            <p class=""><strong>Vehículo:</strong> <span id="pedido-modal-vehiculo"></span></p>
+                                                            <p class=""><strong>Slump:</strong> <span id="pedido-modal-slump"></span></p>
                                                 </p>
                                                 </p>
                                                     </div>
@@ -160,7 +164,7 @@ function createModal() {
 
 
 function closePedidoModal() {
-    console.log("Cerrando modal");
+    // console.log("Cerrando modal");
     const modal = document.getElementById('changelist-filter');
     if (modal) {
         

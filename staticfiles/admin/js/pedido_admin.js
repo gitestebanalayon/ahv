@@ -2,7 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     // Obtener los campos
-    const totalYardasField = document.getElementById('id_total_yardas');
+    const totalYardasField = document.getElementById('id_cantidad_yardas');
     const precioYardaField = document.getElementById('id_precio_yarda');
     const precioTotalField = document.getElementById('id_precio_total');
     
@@ -32,8 +32,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (calculando) return;
         calculando = true;
         
-        const totalYardas = parseFloat(totalYardasField.value) || 0;
-        const precioYarda = parseFloat(precioYardaField.value) || 0;
+        const totalYardas = parseFloat(totalYardasField?.value) || 0;
+        const precioYarda = parseFloat(precioYardaField?.value) || 0;
         const precioTotal = totalYardas * precioYarda;
         
         if (precioTotalField) {

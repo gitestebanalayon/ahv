@@ -4,7 +4,7 @@ from django.utils.translation import ngettext
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from apps.cuenta.models import User
+from apps.cuenta.models import User, Customer
 from django.contrib.auth.admin import UserAdmin
 
 from unfold.forms import AdminPasswordChangeForm, UserCreationForm
@@ -25,13 +25,18 @@ class CustomUserAdmin(UserAdmin, ModelAdmin):
     list_filter_position = "top"
     list_filter_submit = True
     
+    
+    
     # 1. Sobrescribir get_queryset para excluir al superusuario root
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         
+        qs = qs.filter(is_customer=False)
+        
         # Si el usuario actual NO es superusuario, excluir a todos los superusuarios
         if not request.user.is_superuser:
             qs = qs.filter(is_superuser=False)
+            
         # Si el usuario actual ES superusuario, excluir solo el usuario root específico
         else:
             # Excluir el usuario root por username
@@ -178,3 +183,70 @@ class CustomUserAdmin(UserAdmin, ModelAdmin):
             messages.error(request, "No se pueden eliminar superusuarios.")
             queryset = queryset.filter(is_superuser=False)
         super().delete_queryset(request, queryset)
+        
+
+# Configuración para el modelo proxy Customer
+@admin.register(Customer)
+class CustomerAdmin(admin.ModelAdmin):
+     # Esta línea es importante para usar el modelo proxy
+    model = Customer
+    
+    list_per_page = 10
+    
+    def get_queryset(self, request):
+        # Filtra SOLO los usuarios que son clientes
+        qs = super().get_queryset(request)
+        return qs.filter(is_customer=True)
+    
+    # Forzar is_customer al guardar
+    def save_model(self, request, obj, form, change):
+        obj.is_customer = True
+        super().save_model(request, obj, form, change)
+    
+    
+    # Método para botón de editar
+    def editar(self, obj):
+        return format_html(
+            '<a title="Editar" class="btn btn-link" href="/admin/cuenta/customer/{}/change/">'
+            '<span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span>'
+            '</a>', 
+            obj.id
+        )
+    editar.short_description = ""
+    
+    
+    # También puedes restringir la creación para que solo se puedan crear clientes
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    
+    add_form = CustomUserCreationForm
+    change_password_form = AdminPasswordChangeForm
+    
+    list_display = ('nombre_apellido', 'tipo_documento', 'numero', 'email', 'is_staff', 'editar')
+    list_filter = ()
+    search_fields = ('username', 'nombre_apellido', 'tipo_documento', 'numero', 'email',)
+    ordering = ('username',)
+    
+    # Opcional: Campos de solo lectura
+    readonly_fields = ['pregunta_01','pregunta_02','pregunta_03','respuesta_01','respuesta_02','respuesta_03','last_login','fecha_registro','is_superuser']
+    
+    # Opcional: Campos a excluir en la edición
+   
+    
+    # Configuración de los formularios de edición y creación
+    fieldsets = [
+        (
+            ("Permisos"),
+            {
+                "classes":  ["tab"],
+                "fields":   ['is_staff',],
+            },
+        ),
+        (
+            ("Actividad"),
+            {
+                "classes":  ["tab"],
+                "fields":   ['fecha_registro','last_login',],
+            },
+        ),
+    ]

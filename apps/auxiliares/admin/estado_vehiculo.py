@@ -59,7 +59,7 @@ class EstadoVehiculoAdmin(ModelAdmin):
     #     '</a>', obj.id)
 
 
-    list_display        = ('nombre','estatus','editar','eliminar')
+    list_display        = ('nombre','is_delete','editar','eliminar')
     list_filter         = []
     search_fields       = []
     list_display_links  = None

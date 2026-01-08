@@ -8,6 +8,7 @@ class Conductor(models.Model):
     licencia                = models.CharField('Licencia',              max_length = 50,    unique = True                       )
     telefono                = models.CharField('Teléfono',              max_length = 15,                                        )    
     estado_conductor_nombre = models.ForeignKey(EstadoConductor,        on_delete = models.PROTECT, db_column="estado_conductor",     related_name = 'estado_conductor',    to_field = 'nombre', default = 'disponible'   )
+    is_delete               = models.BooleanField('Es Eliminado',          default = False                            )
     fecha_creacion          = models.DateTimeField('Fecha Creación',        auto_now_add = True                                 )
     fecha_modificacion      = models.DateTimeField('Fecha Modificación',    auto_now = True                                     )
     
