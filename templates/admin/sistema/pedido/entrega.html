@@ -141,6 +141,7 @@
                     {% endif %}
                 </div>
 
+                {% if entregas_existentes %}
                 <div class="flex -mx-4 module" id="changelist" x-data="{ changeListWidth: 0 }">
                     <div class="changelist-form-container flex flex-row grow gap-6 min-w-0 px-4">
                         <div class="grow min-w-0" x-resize="changeListWidth = $width">
@@ -162,7 +163,7 @@
                                         <a href="{% url 'admin:sistema_entrega_add' %}?pedido={{ pedido.id }}"
                                             class="rounded inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white transition-colors">
                                             <span class="material-symbols-outlined">add</span>
-                                            Nueva Entrega
+                                            Programar entrega
                                         </a>
                                         <a href="/admin/sistema/pedido/"
                                             class="rounded inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
@@ -176,7 +177,7 @@
                             <div class="lg:rounded-b-default -mx-1 px-1 overflow-x-auto lg:border lg:border-base-200 lg:mx-0 lg:px-0 lg:shadow-xs lg:dark:border-base-800 lg:bg-white lg:dark:bg-base-900"
                                 data-simplebar="init" data-simplebar-auto-hide="false">
 
-                                {% if entregas_existentes %}
+
                                 <table id="result_list"
                                     class="block border-base-200 border-spacing-none border-separate w-full lg:table">
                                     <thead>
@@ -264,7 +265,9 @@
                                         </tr>
                                     </thead>
 
-                                    <tbody>
+                                    <tbody
+                                        class="block relative lg:table-row-group lg:hover:shadow-raised lg:dark:hover:shadow-raised-dark lg:hover:z-20 "
+                                        x-data="{rowOpen: false}">
                                         {% for entrega in entregas_existentes %}
                                         <tr
                                             class="block border border-base-200 mb-3 relative rounded-default shadow-xs lg:table-row lg:border-none lg:mb-0 lg:rounded-none lg:shadow-none dark:border-base-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
@@ -357,14 +360,20 @@
                                             <td class="field-acciones align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
                                                 data-label="Acciones">
                                                 <div class="action-buttons">
-                                                    <a class="btn" href="{% url 'admin:sistema_entrega_change' entrega.id %}?pedido_id={{ pedido.id }}" title="Editar"><span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span></a>
+                                                    <a class="btn"
+                                                        href="{% url 'admin:sistema_entrega_change' entrega.id %}?pedido_id={{ pedido.id }}"
+                                                        title="Editar"><span
+                                                            class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span></a>
                                                 </div>
                                             </td>
 
-                                             <td class="field-acciones align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
+                                            <td class="field-acciones align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
                                                 data-label="Acciones">
                                                 <div class="action-buttons">
-                                                    <a class="btn" href="{% url 'admin:sistema_entrega_delete' entrega.id %}?pedido_id={{ pedido.id }}" title="Eliminar"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>
+                                                    <a class="btn"
+                                                        href="{% url 'admin:sistema_entrega_delete' entrega.id %}?pedido_id={{ pedido.id }}"
+                                                        title="Eliminar"><span
+                                                            class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>
                                                 </div>
                                             </td>
 
@@ -373,129 +382,8 @@
                                     </tbody>
                                 </table>
 
-                                {% else %}
-                                <!-- Mensaje cuando no hay entregas -->
-                                <div id="content" class="container mx-auto ">
-                                    <div id="content-main" x-data="{ filterOpen: false }">
-                                        <div class="flex -mx-4 module" id="changelist" x-data="{ changeListWidth: 0 }">
-                                            <div
-                                                class="result-list-wrapper changelist-form-container flex flex-row grow gap-6 min-w-0 px-4">
-                                                <div class="grow min-w-0" x-resize="changeListWidth = $width">
-                                                    <div
-                                                        class="flex flex-col gap-4 mb-4  sm:flex-row empty:hidden lg:-mb-8 lg:p-3 lg:pb-11 lg:rounded-t-default">
-                                                    </div>
-
-                                                    <form id="changelist-form" class="group" method="post"
-                                                        novalidate="">
-                                                        <div
-                                                            class="bottom-0 left-0 right-0 hidden bg-primary-600 group-has-[input.action-select:checked]:flex fixed gap-3 lg:h-[64px] items-center p-3 z-50 lg:flex-row dark:bg-primary-500">
-                                                            <div id="changelist-actions-wrapper"
-                                                                class="grow group changelist-actions xl:ml-72"
-                                                                x-bind:class="{'xl:ml-0': !sidebarDesktopOpen, 'xl:ml-72': sidebarDesktopOpen}">
-                                                                <div id="changelist-actions"
-                                                                    class="actions flex flex-col gap-3 text-white sm:flex-row sm:items-center lg:items-center mx-auto"
-                                                                    x-bind:style="'width: ' + changeListWidth + 'px'"
-                                                                   >
-
-                                                                    <div class="group primary flex flex-row gap-2 lg:flex-row"
-                                                                        x-data="{action: '', selectAcross: 0}">
-                                                                        <div class="grow relative max-w-2xl">
-                                                                            <select name="action"
-                                                                                class="border border-base-200 bg-white font-medium min-w-20 placeholder-base-400 rounded-default shadow-xs text-font-default-light text-sm focus:outline-2 focus:-outline-offset-2 focus:outline-primary-600 group-[.errors]:border-red-600 focus:group-[.errors]:outline-red-600 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark group-[.primary]:border-transparent disabled:!bg-base-50 dark:disabled:!bg-base-800 px-3 py-2 w-full pr-8! max-w-2xl appearance-none text-ellipsis group-[.changelist-actions]:appearance-none group-[.changelist-actions]:!bg-white/20 group-[.changelist-actions]:font-medium group-[.changelist-actions]:grow group-[.changelist-actions]:px-3 group-[.changelist-actions]:py-2 group-[.changelist-actions]:pr-8 group-[.changelist-actions]:rounded-default group-[.changelist-actions]:!text-current group-[.changelist-actions]:truncate group-[.changelist-actions]:!outline-primary-400 group-[.changelist-actions]:dark:!outline-primary-700 group-[.changelist-actions]:*:text-base-700 group-[.changelist-actions]:lg:w-72"
-                                                                                aria-label="Select action to run"
-                                                                                x-model="action" required="">
-                                                                                <option value="" selected="">Select
-                                                                                    action</option>
-
-                                                                                <option value="delete_selected">Delete
-                                                                                    selected solar events</option>
-
-                                                                            </select>
-
-                                                                            <span
-                                                                                class="material-symbols-outlined absolute group-[.primary]:text-white pointer-events-none mr-[12px] right-0 text-base-400 top-0 top-1/2 hover:text-base-700 dark:text-base-500 dark:hover:text-base-200 -translate-y-1/2">expand_more</span>
-                                                                        </div>
-                                                                        <input type="hidden" name="select_across"
-                                                                            value="0" class="select-across"
-                                                                            x-model="selectAcross">
-                                                                        <button type="submit" x-show="action"
-                                                                            class="bg-primary-900 cursor-pointer flex font-medium items-center justify-center px-3 py-2 rounded-default text-sm text-white whitespace-nowrap"
-                                                                            title="Run the selected action" name="index"
-                                                                            value="0" style="display: none;">
-                                                                            Run
-                                                                        </button>
-                                                                    </div>
-                                                                    <div
-                                                                        class="flex grow flex-col sm:flex-row sm:items-center">
-                                                                        <span class="action-counter"
-                                                                            data-actions-icnt="0">
-                                                                            0 of 0 selected
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div
-                                                            class="bg-white border border-base-200 flex flex-col items-center px-8 shadow-xs dark:bg-base-900 dark:border-base-800 rounded-default py-24">
-
-                                                            <div
-                                                                class="border border-base-300 border-dashed flex h-24 items-center justify-center mb-8 rounded-full w-24 dark:border-base-700">
-                                                                <span
-                                                                    class="material-symbols-outlined text-base-500 text-5xl! dark:text-base-400">inbox</span>
-                                                            </div>
 
 
-                                                            <h2
-                                                                class="font-semibold mb-1 text-xl text-font-important-light tracking-tight dark:text-font-important-dark">
-                                                                No results found
-                                                            </h2>
-
-                                                            <p class="mb-6 text-center">
-                                                                This page yielded into no results. Create a new item or
-                                                                reset your filters.
-                                                            </p>
-
-
-                                                            <div
-                                                                class="flex flex-col gap-4 justify-center w-full lg:flex-row">
-
-                                                                <a href="/en/admin/django_celery_beat/solarschedule/add/"
-                                                                    class="bg-primary-600 flex flex-row font-medium gap-2 items-center h-[38px] justify-center px-3 py-2 rounded-default text-white w-full lg:w-auto">
-                                                                    <span
-                                                                        class="material-symbols-outlined text-white">add</span>
-                                                                    Add solar event
-                                                                </a>
-
-
-
-
-                                                            </div>
-
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- <div class="text-center py-12">
-                                    <div class="material-symbols-outlined text-6xl text-gray-300 mb-4">
-                                        local_shipping
-                                    </div>
-                                    <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        No hay entregas programadas
-                                    </h3>
-                                    <p class="text-gray-500 dark:text-gray-400 mb-6">
-                                        Aún no se han creado entregas para este pedido.
-                                    </p>
-                                    <a href="{% url 'admin:sistema_entrega_add' %}?pedido={{ pedido.id }}"
-                                       class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                                        <span class="material-symbols-outlined">add</span>
-                                        Crear primera entrega
-                                    </a>
-                                </div> -->
-                                {% endif %}
                             </div>
 
                             <!-- Resumen -->
@@ -503,25 +391,66 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Mensaje cuando no hay entregas -->
+                {% else %}
+                <div id="content" class="container mx-auto ">
+                    <div id="content-main" x-data="{ filterOpen: false }">
+                        <div class="flex -mx-4 module" id="changelist" x-data="{ changeListWidth: 0 }">
+                            <div
+                                class="result-list-wrapper changelist-form-container flex flex-row grow gap-6 min-w-0 px-4">
+                                <div class="grow min-w-0" x-resize="changeListWidth = $width">
+                                   
+
+                                    <form id="changelist-form" class="group" method="post" novalidate="">
+                                     
+                                        <div
+                                            class="bg-white border border-base-200 flex flex-col items-center px-8 shadow-xs dark:bg-base-900 dark:border-base-800 rounded-default py-24">
+
+                                            <div
+                                                class="border border-base-300 border-dashed flex h-24 items-center justify-center mb-8 rounded-full w-24 dark:border-base-700">
+                                                <span
+                                                    class="material-symbols-outlined text-base-500 text-5xl! dark:text-base-400">inbox</span>
+                                            </div>
+
+
+                                            <h2
+                                                class="font-semibold mb-1 text-xl text-font-important-light tracking-tight dark:text-font-important-dark">
+                                                No se encontraron resultados
+                                            </h2>
+
+                                            <p class="mb-6 text-center">
+                                                Programa una nueva entrega.
+                                            </p>
+
+
+                                            <div class="flex flex-col gap-4 justify-center w-full lg:flex-row">
+
+                                                <a href="{% url 'admin:sistema_entrega_add' %}?pedido={{ pedido.id }}"
+                                                    class="bg-primary-600 flex flex-row font-medium gap-2 items-center h-[38px] justify-center px-3 py-2 rounded-default text-white w-full lg:w-auto">
+                                                    <span class="material-symbols-outlined text-white">add</span>
+                                                    Programar entrega
+                                                </a>
+
+
+
+
+                                            </div>
+
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // document.addEventListener('DOMContentLoaded', function () {
-    //     // Agregar funcionalidad para confirmaciones
-    //     const deleteButtons = document.querySelectorAll('a[href*="delete"]');
-    //     deleteButtons.forEach(button => {
-    //         button.addEventListener('click', function (e) {
-    //             if (!confirm('¿Está seguro de eliminar este registro?')) {
-    //                 e.preventDefault();
-    //             }
-    //         });
-    //     });
-
-    //     // Actualizar título dinámico
-    //     document.title = `Despachos - ${document.querySelector('h1').textContent}`;
-    // });
+    
 </script>
 {% endblock %}
