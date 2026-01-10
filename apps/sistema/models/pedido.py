@@ -32,7 +32,7 @@ class Pedido(models.Model):
         verbose_name_plural = 'Pedidos'
         
     def __str__(self):
-        return f'{self.cliente.username} - {self.estado_pedido}'
+        return f'{self.codigo_pedido}'
     
     def save(self, *args, **kwargs):
         # Generar código automático solo si es un nuevo registro

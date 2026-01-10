@@ -1,8 +1,11 @@
 from django.contrib                 import admin, messages
+from django.http import HttpResponseRedirect
 from django.utils.translation       import ngettext, gettext_lazy as _
 from django.utils.html              import format_html
 from django.utils.http              import urlencode
-from django.urls                    import reverse
+from django.shortcuts               import render, redirect, get_object_or_404
+from django.urls                    import reverse, path
+from django                         import forms
 
 from unfold.admin                   import ModelAdmin
 from unfold.paginator               import InfinitePaginator
@@ -21,13 +24,32 @@ from unfold.contrib.filters.admin   import (
     MultipleDropdownFilter
 )
 
-from apps.sistema.models.pedido        import Pedido, Entrega
+from apps.sistema.models.pedido import Pedido, Entrega
+from apps.sistema.models.conductor import Conductor
+from apps.sistema.models.vehiculo import Vehiculo
+
+class EntregaForm(forms.ModelForm):
+    class Meta:
+        model = Entrega
+        fields = ['vehiculo', 'conductor', 'secuencia', 'yardas_asignadas', 
+                 'fecha_entrega', 'hora_entrega', 'nota']
 
 @admin.register(Pedido)
 class PedidoAdmin(ModelAdmin):
      # Cambia esto para mostrar 10 registros por página
     list_per_page = 10
     
+    # Sobrescribir get_urls para agregar nuestra vista personalizada
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                'entrega/<int:pedido_id>/',
+                self.admin_site.admin_view(self.entrega_view),
+                name='pedido-entrega'
+            ),
+        ]
+        return custom_urls + urls
   
 
     def editar(self, obj):
@@ -79,7 +101,20 @@ class PedidoAdmin(ModelAdmin):
         return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">{}</span>', obj.estado_pedido)
     
     def despachos(self, obj):
-        return format_html('<a class="btn" href="#"><span class="material-symbols-outlined text-green-700 dark:text-green-200">delivery_truck_bolt</span></a>', obj.id)
+        return format_html('<a class="btn" href="/admin/sistema/pedido/entrega/{}/"><span class="material-symbols-outlined text-green-700 dark:text-green-200">delivery_truck_bolt</span></a>', obj.id)
+        
+    def entregas_realizadas(self, obj):
+        # Mostrar el número de entregas realizadas para este pedido
+        count = obj.entrega_set.count()
+        return format_html(
+            '<a class="badge bg-blue-100 text-blue-800 px-2 py-1 rounded" '
+            'href="/admin/sistema/entrega/?pedido__id__exact={}" title="Ver entregas">'
+            '{} entrega(s)'
+            '</a>',
+            obj.id,
+            count
+        )
+    entregas_realizadas.short_description = "Entregas"    
         
     list_display        = ('cliente', 'codigo_pedido', 'cantidad_yardas', 'precio_yarda', 'precio_total', 'estado', 'mas_detalles', 'despachos', 'editar','eliminar',)
     list_filter         = []
@@ -107,15 +142,51 @@ class PedidoAdmin(ModelAdmin):
         ),
     ]
     
+    # VISTA PERSONALIZADA PARA DESPACHOS
+    # En tu vista (admin.py)
+    def entrega_view(self, request, pedido_id):
+        pedido = get_object_or_404(Pedido, id=pedido_id)
+        
+        # Obtener todas las entregas existentes para este pedido
+        entregas_existentes = Entrega.objects.filter(pedido=pedido).order_by('secuencia')
+        
+        # Calcular totales
+        total_yardas_asignadas = sum([e.yardas_asignadas for e in entregas_existentes])
+        yardas_pendientes = pedido.cantidad_yardas - total_yardas_asignadas if pedido.cantidad_yardas else 0
+        
+        context = {
+            **self.admin_site.each_context(request),
+            'codigo_pedido': f'{pedido.codigo_pedido}',
+            'pedido': pedido,
+            'entregas_existentes': entregas_existentes,
+            'total_yardas_asignadas': total_yardas_asignadas,
+            'yardas_pendientes': yardas_pendientes,
+            'total_entregas': entregas_existentes.count(),
+            'entregas_completadas': entregas_existentes.filter(entregado=True).count(),
+            'opts': self.model._meta,
+            'app_label': self.model._meta.app_label,
+            'has_change_permission': self.has_change_permission(request),
+        }
+        
+        return render(request, 'admin/sistema/pedido/entrega.html', context)
+    
     class Media:
         js = (
             'admin/js/pedido_modal.js',
             'admin/js/pedido_admin.js',
             'admin/js/pedido_asignacion.js')
-        
+
         
 @admin.register(Entrega)
 class EntregaAdmin(ModelAdmin):
+      # Ocultar completamente del índice del admin
+    def has_module_permission(self, request):
+        return False
+    
+    # Pero permitir acceso desde otras vistas
+    def has_view_permission(self, request, obj=None):
+        return True
+    
      # Cambia esto para mostrar 10 registros por página
     list_per_page = 10
     
@@ -124,30 +195,91 @@ class EntregaAdmin(ModelAdmin):
     def eliminar(self, obj):
         return format_html('<a class="btn" href="/admin/sistema/entrega/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
 
+    exclude = ('pedido',)
+ 
+    def save_model(self, request, obj, form, change):
+        # Si es una creación nueva y viene de un pedido específico
+        if not change and 'pedido' in request.GET:
+            pedido_id = request.GET.get('pedido')
+            try:
+                from apps.sistema.models.pedido import Pedido
+                pedido = Pedido.objects.get(id=pedido_id)
+                obj.pedido = pedido
+            except Pedido.DoesNotExist:
+                pass
+        
+        super().save_model(request, obj, form, change)
+
+    # Redirigir después de agregar
+    def response_add(self, request, obj, post_url_continue=None):
+        # Si el usuario hizo clic en "Guardar y continuar editando"
+        if "_continue" in request.POST:
+            # Mantener el comportamiento por defecto
+            return super().response_add(request, obj, post_url_continue)
+        
+        # Si el usuario hizo clic en "Guardar y añadir otro"
+        elif "_addanother" in request.POST:
+            # Mantener el comportamiento por defecto pero mantener el parámetro pedido
+            from django.contrib import messages
+            messages.success(request, f"Entrega {obj.codigo_entrega} creada exitosamente.")
+            return HttpResponseRedirect(
+                f"{reverse('admin:sistema_entrega_add')}?pedido={obj.pedido.id}"
+            )
+        
+        # Si el usuario hizo clic en "Guardar" (sin continuar)
+        else:
+            # Redirigir a la vista de entregas del pedido
+            if hasattr(obj, 'pedido') and obj.pedido:
+                return HttpResponseRedirect(
+                    reverse('admin:pedido-entrega', args=[obj.pedido.id])
+                )
+            else:
+                # Si por alguna razón no hay pedido, redirigir a la lista de entregas
+                return super().response_add(request, obj, post_url_continue)
+    
+    # También sobrescribir response_change para la edición
+    def response_change(self, request, obj):
+        # Si el usuario hizo clic en "Guardar y continuar editando"
+        if "_continue" in request.POST:
+            return super().response_change(request, obj)
+        
+        # Si el usuario hizo clic en "Guardar"
+        else:
+            # Redirigir a la vista de entregas del pedido
+            if hasattr(obj, 'pedido') and obj.pedido:
+                return HttpResponseRedirect(
+                    reverse('admin:pedido-entrega', args=[obj.pedido.id])
+                )
+            else:
+                return super().response_change(request, obj)
+
+     # También sobrescribir response_delete para la eliminación
+    def response_delete(self, request, obj_display, obj_id):
+        """
+        Determina la redirección después de eliminar una entrega.
+        Si venimos de un pedido específico, redirigir a la vista de entregas del pedido.
+        """
+        # Verificar si hay un pedido_id en los parámetros GET
+        pedido_id = request.GET.get('pedido_id')
+        
+        if pedido_id:
+            # Mostrar mensaje de éxito
+            messages.success(request, f"La entrega ha sido eliminada exitosamente.")
+            # Redirigir a la vista de entregas del pedido
+            return HttpResponseRedirect(
+                reverse('admin:pedido-entrega', args=[pedido_id])
+            )
+        
+        # Si no hay pedido_id, usar el comportamiento por defecto
+        return super().response_delete(request, obj_display, obj_id)
+
     list_display        = ( 'codigo_entrega', 'pedido', 'vehiculo', 'conductor', 'entregado',  'editar','eliminar')
     list_filter         = []
     search_fields       = []
     list_display_links  = None
     actions             = None #[desactivar, reactivar]
     list_select_related = True
-    readonly_fields    = ('codigo_entrega','is_delete',)
+    readonly_fields     = ('codigo_entrega','is_delete')
     
-     # Configuración de los formularios de edición y creación
-    # fieldsets = [
-    #     (
-    #         ("Asignar pedido"), 
-    #         {
-    #             "classes":  ["tab"],
-    #             "fields":   ['conductor','vehiculo','estado_pedido'],
-    #         }
-    #     ),
-    #     (
-    #         ("Asignar yardas y precios"), 
-    #         {
-    #             "classes":  ["tab"],
-    #             "fields":   ['cantidad_yardas','precio_yarda','precio_total'],
-    #         }
-    #     ),
-    # ]
     
    
