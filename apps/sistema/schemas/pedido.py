@@ -41,3 +41,17 @@ class SchemaListarPedido(Schema):
             cantidad_yardas=pedido.cantidad_yardas,
             entregas=entregas_data
         )
+        
+
+class EntregaActionResponse(Schema):
+    success: bool
+    message: str
+    estado: Optional[str] = None
+    fecha_hora_salida: Optional[datetime] = None
+    fecha_hora_entrega: Optional[datetime] = None
+    conductor_disponible: Optional[bool] = None
+    vehiculo_disponible: Optional[bool] = None
+    pedido_estado: Optional[str] = None
+
+class EntregaActionRequest(Schema):
+    motivo: Optional[str] = None  # Para cancelaciones

@@ -249,6 +249,15 @@
                                                 scope="col">
                                                 <div class="flex items-center">
                                                     <div class="text">
+                                                        <span>Acciones</span>
+                                                    </div>
+                                                </div>
+                                            </th>
+<!-- 
+                                            <th class="align-middle font-semibold py-2 text-left text-font-important-light dark:text-font-important-dark whitespace-nowrap px-3 lg:table-cell"
+                                                scope="col">
+                                                <div class="flex items-center">
+                                                    <div class="text">
                                                         <span>Editar</span>
                                                     </div>
                                                 </div>
@@ -261,7 +270,7 @@
                                                         <span>Eliminar</span>
                                                     </div>
                                                 </div>
-                                            </th>
+                                            </th> -->
                                         </tr>
                                     </thead>
 
@@ -341,23 +350,119 @@
                                             <!-- Estado -->
                                             <td class="field-estado align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
                                                 data-label="Estado">
-                                                {% if entrega.entregado %}
-                                                <span
-                                                    class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold badge-success">
-                                                    <span class="material-symbols-outlined text-sm">done_all</span>
-                                                    Entregado
-                                                </span>
-                                                {% else %}
-                                                <span
-                                                    class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold badge-warning">
-                                                    <span class="material-symbols-outlined text-sm">schedule</span>
-                                                    Pendiente
-                                                </span>
-                                                {% endif %}
+                                                    {% if entrega.estado == 'entregado' %}
+                                                    <span
+                                                        class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold badge-success">
+                                                        <span class="material-symbols-outlined text-sm">done_all</span>
+                                                        Entregado
+                                                    </span>
+                                                    {% elif entrega.estado == 'en_camino' %}
+                                                    <span
+                                                        class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold badge-primary">
+                                                        <span class="material-symbols-outlined text-sm">directions_car</span>
+                                                        En Camino
+                                                    </span>
+                                                    {% elif entrega.estado == 'programado' %}
+                                                    <span
+                                                        class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold badge-info">
+                                                        <span class="material-symbols-outlined text-sm">schedule</span>
+                                                        Programado
+                                                    </span>
+                                                    {% elif entrega.estado == 'cancelado' %}
+                                                    <span
+                                                        class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold badge-danger">
+                                                        <span class="material-symbols-outlined text-sm">close</span>
+                                                        Cancelado
+                                                    </span>
+                                                    {% else %}
+                                                    <span
+                                                        class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold badge-warning">
+                                                        <span class="material-symbols-outlined text-sm">help</span>
+                                                        Desconocido
+                                                    </span>
+                                                    {% endif %}
+                                            </td>
+
+                                           <td class="field-acciones align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
+                                                data-label="Acciones">
+                                                <div class="action-buttons flex flex-wrap gap-1">
+                                                    {% if entrega.estado == 'programado' %}
+                                                        <!-- Botón Iniciar Entrega -->
+                                                        <a class="btn hover:bg-green-100 dark:hover:bg-green-900/30 p-1 rounded transition-colors"
+                                                            href="{% url 'admin:marcar_iniciado' entrega.id %}?pedido_id={{ pedido.id }}"
+                                                            title="Iniciar Entrega"
+                                                            onclick="return confirm('¿Está seguro de iniciar esta entrega?')">
+                                                            <span class="material-symbols-outlined text-green-700 dark:text-green-200">play_circle</span>
+                                                        </a>
+                                                        
+                                                        <!-- Botón Cancelar Entrega (solo programado) -->
+                                                        <a class="btn hover:bg-red-100 dark:hover:bg-red-900/30 p-1 rounded transition-colors"
+                                                            href="{% url 'admin:cancelar_entrega' entrega.id %}?pedido_id={{ pedido.id }}"
+                                                            title="Cancelar Entrega"
+                                                            onclick="return confirm('¿Está seguro de cancelar esta entrega?')">
+                                                            <span class="material-symbols-outlined text-red-700 dark:text-red-200">cancel</span>
+                                                        </a>
+                                                    {% endif %}
+                                                    
+                                                    {% if entrega.estado == 'en_camino' %}
+                                                        <!-- Botón Completar Entrega -->
+                                                        <a class="btn hover:bg-blue-100 dark:hover:bg-blue-900/30 p-1 rounded transition-colors"
+                                                            href="{% url 'admin:marcar_completado' entrega.id %}?pedido_id={{ pedido.id }}"
+                                                            title="Completar Entrega"
+                                                            onclick="return confirm('¿Está seguro de marcar esta entrega como completada?')">
+                                                            <span class="material-symbols-outlined text-blue-700 dark:text-blue-200">check_circle</span>
+                                                        </a>
+                                                        
+                                                        <!-- Botón Cancelar Entrega (en_camino) -->
+                                                        <a class="btn hover:bg-red-100 dark:hover:bg-red-900/30 p-1 rounded transition-colors"
+                                                            href="{% url 'admin:cancelar_entrega' entrega.id %}?pedido_id={{ pedido.id }}"
+                                                            title="Cancelar Entrega"
+                                                            onclick="return confirm('¿Está seguro de cancelar esta entrega?')">
+                                                            <span class="material-symbols-outlined text-red-700 dark:text-red-200">cancel</span>
+                                                        </a>
+                                                    {% endif %}
+                                                    
+                                                    {% if entrega.estado == 'entregado' %}
+                                                        <!-- Botón Ver detalles de entrega completada -->
+                                                        <a class="btn hover:bg-green-100 dark:hover:bg-green-900/30 p-1 rounded transition-colors"
+                                                            href="{% url 'admin:sistema_entrega_change' entrega.id %}?pedido_id={{ pedido.id }}"
+                                                            title="Ver detalles de entrega completada">
+                                                            <span class="material-symbols-outlined text-green-700 dark:text-green-200">visibility</span>
+                                                        </a>
+                                                    {% endif %}
+                                                    
+                                                    {% if entrega.estado == 'cancelado' %}
+                                                        <!-- Botón Ver detalles de entrega cancelada -->
+                                                        <a class="btn hover:bg-gray-100 dark:hover:bg-gray-800 p-1 rounded transition-colors"
+                                                            href="{% url 'admin:sistema_entrega_change' entrega.id %}?pedido_id={{ pedido.id }}"
+                                                            title="Ver detalles de entrega cancelada">
+                                                            <span class="material-symbols-outlined text-gray-700 dark:text-gray-200">visibility</span>
+                                                        </a>
+                                                    {% endif %}
+                                                    
+                                                    <!-- Botón Editar (disponible en estados programado, en_camino y cancelado) -->
+                                                    {% if entrega.estado in 'programado,en_camino,cancelado' %}
+                                                        <a class="btn hover:bg-blue-100 dark:hover:bg-blue-900/30 p-1 rounded transition-colors"
+                                                            href="{% url 'admin:sistema_entrega_change' entrega.id %}?pedido_id={{ pedido.id }}"
+                                                            title="Editar entrega">
+                                                            <span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span>
+                                                        </a>
+                                                    {% endif %}
+                                                    
+                                                    <!-- Botón Eliminar (disponible en todos los estados excepto entregado) -->
+                                                    {% if entrega.estado != 'entregado' %}
+                                                        <a class="btn hover:bg-red-100 dark:hover:bg-red-900/30 p-1 rounded transition-colors"
+                                                            href="{% url 'admin:sistema_entrega_delete' entrega.id %}?pedido_id={{ pedido.id }}"
+                                                            title="Eliminar entrega"
+                                                            onclick="return confirm('¿Está seguro de eliminar esta entrega?')">
+                                                            <span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span>
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
                                             </td>
 
                                             <!-- Acciones -->
-                                            <td class="field-acciones align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
+                                            <!-- <td class="field-acciones align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
                                                 data-label="Acciones">
                                                 <div class="action-buttons">
                                                     <a class="btn"
@@ -375,7 +480,7 @@
                                                         title="Eliminar"><span
                                                             class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>
                                                 </div>
-                                            </td>
+                                            </td> -->
 
                                         </tr>
                                         {% endfor %}

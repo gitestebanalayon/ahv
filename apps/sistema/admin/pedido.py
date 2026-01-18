@@ -6,6 +6,8 @@ from django.utils.http              import urlencode
 from django.shortcuts               import render, redirect, get_object_or_404
 from django.urls                    import reverse, path
 from django                         import forms
+from django.core.exceptions import ValidationError
+
 
 from unfold.admin                   import ModelAdmin
 from unfold.paginator               import InfinitePaginator
@@ -32,7 +34,7 @@ class EntregaForm(forms.ModelForm):
     class Meta:
         model = Entrega
         fields = ['vehiculo', 'conductor', 'secuencia', 'yardas_asignadas', 
-                 'fecha_entrega', 'hora_entrega', 'nota']
+                 'fecha_hora_salida', 'fecha_hora_entrega', 'nota']
 
 @admin.register(Pedido)
 class PedidoAdmin(ModelAdmin):
@@ -198,6 +200,8 @@ class PedidoAdmin(ModelAdmin):
         total_yardas_asignadas = sum([e.yardas_asignadas for e in entregas_existentes])
         yardas_pendientes = pedido.cantidad_yardas - total_yardas_asignadas if pedido.cantidad_yardas else 0
         
+        entregas_completadas = entregas_existentes.filter(entregado=True).count()
+        
         context = {
             **self.admin_site.each_context(request),
             'codigo_pedido': f'{pedido.codigo_pedido}',
@@ -206,7 +210,7 @@ class PedidoAdmin(ModelAdmin):
             'total_yardas_asignadas': total_yardas_asignadas,
             'yardas_pendientes': yardas_pendientes,
             'total_entregas': entregas_existentes.count(),
-            'entregas_completadas': entregas_existentes.filter(entregado=True).count(),
+            'entregas_completadas': entregas_completadas,
             'opts': self.model._meta,
             'app_label': self.model._meta.app_label,
             'has_change_permission': self.has_change_permission(request),
@@ -238,6 +242,116 @@ class EntregaAdmin(ModelAdmin):
     def eliminar(self, obj):
         return format_html('<a class="btn" href="/admin/sistema/entrega/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
 
+    def acciones(self, obj):
+        html = ''
+        if obj.estado == 'programado':
+            html += f'''
+                <a href="{reverse('admin:marcar_iniciado', args=[obj.id])}" 
+                   class="button" 
+                   style="background-color: #4CAF50; color: white; padding: 5px 10px; border-radius: 5px; margin-right: 5px;">
+                    Iniciar Entrega
+                </a>
+            '''
+        if obj.estado in ['programado', 'en_camino']:
+            html += f'''
+                <a href="{reverse('admin:marcar_completado', args=[obj.id])}" 
+                   class="button" 
+                   style="background-color: #2196F3; color: white; padding: 5px 10px; border-radius: 5px; margin-right: 5px;">
+                    Completar
+                </a>
+                <a href="{reverse('admin:cancelar_entrega', args=[obj.id])}" 
+                   class="button" 
+                   style="background-color: #f44336; color: white; padding: 5px 10px; border-radius: 5px;">
+                    Cancelar
+                </a>
+            '''
+        return format_html(html)
+    acciones.short_description = 'Acciones'
+
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:entrega_id>/iniciar/', 
+                 self.admin_site.admin_view(self.marcar_iniciado_view), 
+                 name='marcar_iniciado'),
+            path('<int:entrega_id>/completar/', 
+                 self.admin_site.admin_view(self.marcar_completado_view), 
+                 name='marcar_completado'),
+            path('<int:entrega_id>/cancelar/', 
+                 self.admin_site.admin_view(self.cancelar_view), 
+                 name='cancelar_entrega'),
+        ]
+        return custom_urls + urls
+
+   
+
+    def marcar_iniciado_view(self, request, entrega_id):
+        try:
+            entrega = Entrega.objects.get(id=entrega_id)
+            entrega.marcar_como_iniciado()
+            messages.success(request, f'Entrega {entrega.codigo_entrega} marcada como "En Camino"')
+            
+            # Redirigir a la vista de entregas del pedido
+            return HttpResponseRedirect(
+                reverse('admin:pedido-entrega', args=[entrega.pedido.id])
+            )
+            
+        except Entrega.DoesNotExist:
+            messages.error(request, 'Entrega no encontrada')
+            return HttpResponseRedirect(reverse('admin:sistema_entrega_changelist'))
+        
+    def marcar_completado_view(self, request, entrega_id):
+        try:
+            entrega = Entrega.objects.get(id=entrega_id)
+            entrega.marcar_como_completado()
+            messages.success(request, f'Entrega {entrega.codigo_entrega} completada exitosamente')
+            
+            # Redirigir a la vista de entregas del pedido
+            return HttpResponseRedirect(
+                reverse('admin:pedido-entrega', args=[entrega.pedido.id])
+            )
+            
+        except Entrega.DoesNotExist:
+            messages.error(request, 'Entrega no encontrada')
+            return HttpResponseRedirect(reverse('admin:sistema_entrega_changelist'))
+        except ValidationError as e:
+            messages.error(request, str(e))
+            # Intentar obtener el pedido para redirigir
+            try:
+                entrega = Entrega.objects.get(id=entrega_id)
+                return HttpResponseRedirect(
+                    reverse('admin:pedido-entrega', args=[entrega.pedido.id])
+                )
+            except:
+                return HttpResponseRedirect(reverse('admin:sistema_entrega_changelist'))
+        
+    def cancelar_view(self, request, entrega_id):
+        try:
+            entrega = Entrega.objects.get(id=entrega_id)
+            entrega.cancelar()
+            messages.success(request, f'Entrega {entrega.codigo_entrega} cancelada')
+            
+            # Redirigir a la vista de entregas del pedido
+            return HttpResponseRedirect(
+                reverse('admin:pedido-entrega', args=[entrega.pedido.id])
+            )
+            
+        except Entrega.DoesNotExist:
+            messages.error(request, 'Entrega no encontrada')
+            return HttpResponseRedirect(reverse('admin:sistema_entrega_changelist'))
+        except ValidationError as e:
+            messages.error(request, str(e))
+            # Intentar obtener el pedido para redirigir
+            try:
+                entrega = Entrega.objects.get(id=entrega_id)
+                return HttpResponseRedirect(
+                    reverse('admin:pedido-entrega', args=[entrega.pedido.id])
+                )
+            except:
+                return HttpResponseRedirect(reverse('admin:sistema_entrega_changelist'))
+
+
     exclude = ('pedido', 'secuencia')
  
     def save_model(self, request, obj, form, change):
@@ -252,6 +366,8 @@ class EntregaAdmin(ModelAdmin):
                 pass
         
         super().save_model(request, obj, form, change)
+
+
 
     # Redirigir después de agregar
     def response_add(self, request, obj, post_url_continue=None):
@@ -297,6 +413,7 @@ class EntregaAdmin(ModelAdmin):
                 return super().response_change(request, obj)
 
      # También sobrescribir response_delete para la eliminación
+    
     def response_delete(self, request, obj_display, obj_id):
         """
         Determina la redirección después de eliminar una entrega.
@@ -316,7 +433,7 @@ class EntregaAdmin(ModelAdmin):
         # Si no hay pedido_id, usar el comportamiento por defecto
         return super().response_delete(request, obj_display, obj_id)
 
-    list_display        = ( 'codigo_entrega', 'pedido', 'conductor', 'vehiculo', 'entregado',  'editar','eliminar')
+    list_display = ('codigo_entrega', 'pedido', 'conductor', 'vehiculo', 'acciones', 'editar', 'eliminar')
     list_filter         = []
     search_fields       = []
     list_display_links  = None
@@ -336,7 +453,7 @@ class EntregaAdmin(ModelAdmin):
             ("Control de entregas"), 
             {
                 "classes":  ["tab"],
-                "fields":   ['entregado', 'fecha_entrega','hora_entrega', 'nota'],
+                "fields":   ['estado', 'fecha_hora_salida','fecha_hora_entrega', 'nota'],
             }
         ),
     ]
