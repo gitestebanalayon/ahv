@@ -2,7 +2,7 @@ class PedidoAsignacion {
     constructor() {
         this.conductorSelect = null;
         this.vehiculoSelect = null;
-        this.apiBaseUrl = 'https://ahvadmin.pythonanywhere.com/';
+        this.apiBaseUrl = 'http://127.0.0.1:8000/';
         this.initialized = false;
         
         this.init();
