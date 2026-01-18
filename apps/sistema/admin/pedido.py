@@ -281,6 +281,9 @@ class EntregaAdmin(ModelAdmin):
             path('<int:entrega_id>/cancelar/', 
                  self.admin_site.admin_view(self.cancelar_view), 
                  name='cancelar_entrega'),
+            path('<int:entrega_id>/restablecer/',  # NUEVA RUTA
+                self.admin_site.admin_view(self.restablecer_view), 
+                name='restablecer_entrega'),
         ]
         return custom_urls + urls
 
@@ -350,6 +353,48 @@ class EntregaAdmin(ModelAdmin):
                 )
             except:
                 return HttpResponseRedirect(reverse('admin:sistema_entrega_changelist'))
+
+    def restablecer_view(self, request, entrega_id):
+        """Vista para restablecer una entrega cancelada"""
+        try:
+            entrega = Entrega.objects.get(id=entrega_id)
+            entrega.restablecer()
+            messages.success(request, f'Entrega {entrega.codigo_entrega} restablecida exitosamente')
+            
+            # Redirigir a la vista de entregas del pedido
+            pedido_id = request.GET.get('pedido_id') or (hasattr(entrega, 'pedido') and entrega.pedido.id)
+            
+            if pedido_id:
+                return HttpResponseRedirect(
+                    reverse('admin:pedido-entrega', args=[pedido_id])
+                )
+            else:
+                return HttpResponseRedirect(reverse('admin:sistema_entrega_changelist'))
+                
+        except Entrega.DoesNotExist:
+            messages.error(request, 'Entrega no encontrada')
+            pedido_id = request.GET.get('pedido_id')
+            if pedido_id:
+                return HttpResponseRedirect(
+                    reverse('admin:pedido-entrega', args=[pedido_id])
+                )
+            return HttpResponseRedirect(reverse('admin:sistema_entrega_changelist'))
+        except ValidationError as e:
+            messages.error(request, str(e))
+            pedido_id = request.GET.get('pedido_id')
+            if pedido_id:
+                return HttpResponseRedirect(
+                    reverse('admin:pedido-entrega', args=[pedido_id])
+                )
+            return HttpResponseRedirect(reverse('admin:sistema_entrega_changelist'))
+        except Exception as e:
+            messages.error(request, f'Error: {str(e)}')
+            pedido_id = request.GET.get('pedido_id')
+            if pedido_id:
+                return HttpResponseRedirect(
+                    reverse('admin:pedido-entrega', args=[pedido_id])
+                )
+            return HttpResponseRedirect(reverse('admin:sistema_entrega_changelist'))
 
 
     exclude = ('pedido', 'secuencia')
@@ -450,10 +495,10 @@ class EntregaAdmin(ModelAdmin):
             }
         ),
         (
-            ("Control de entregas"), 
+            ("Nota"), 
             {
                 "classes":  ["tab"],
-                "fields":   ['estado', 'fecha_hora_salida','fecha_hora_entrega', 'nota'],
+                "fields":   ['nota'],
             }
         ),
     ]

@@ -248,3 +248,34 @@ class Entrega(models.Model):
                 
             except (EstadoConductor.DoesNotExist, EstadoVehiculo.DoesNotExist) as e:
                 raise ValidationError(f"Estado no encontrado: {e}")
+            
+    def restablecer(self):
+        """Restablece una entrega cancelada a estado programado"""
+        if self.estado == 'cancelado':
+            self.estado = 'programado'
+            self.entregado = False  # Asegurar que se vuelva a False
+            
+            try:
+                # Verificar disponibilidad del conductor y vehículo
+                from apps.auxiliares.models.estado_conductor import EstadoConductor
+                from apps.auxiliares.models.estado_vehiculo import EstadoVehiculo
+                
+                estado_conductor_en_viaje = EstadoConductor.objects.get(nombre='En Viaje')
+                estado_vehiculo_en_viaje = EstadoVehiculo.objects.get(nombre='En Viaje')
+                
+                # Marcar conductor y vehículo como ocupados nuevamente
+                self.conductor.estado_conductor_nombre = estado_conductor_en_viaje
+                self.conductor.save()
+                
+                self.vehiculo.estado_vehiculo_nombre = estado_vehiculo_en_viaje
+                self.vehiculo.save()
+                
+                self.save()
+                
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error al restablecer entrega {self.id}: {str(e)}")
+                raise ValidationError(f"No se pudo restablecer la entrega: {str(e)}")
+        else:
+            raise ValidationError(f"No se puede restablecer una entrega en estado '{self.estado}'")
