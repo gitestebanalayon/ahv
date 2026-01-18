@@ -190,17 +190,24 @@ class PedidoAdmin(ModelAdmin):
     
     # VISTA PERSONALIZADA PARA DESPACHOS
     # En tu vista (admin.py)
+    # En apps/sistema/admin/pedido.py - En la clase PedidoAdmin
+
     def entrega_view(self, request, pedido_id):
         pedido = get_object_or_404(Pedido, id=pedido_id)
         
         # Obtener todas las entregas existentes para este pedido
         entregas_existentes = Entrega.objects.filter(pedido=pedido).order_by('secuencia')
         
-        # Calcular totales
-        total_yardas_asignadas = sum([e.yardas_asignadas for e in entregas_existentes])
-        yardas_pendientes = pedido.cantidad_yardas - total_yardas_asignadas if pedido.cantidad_yardas else 0
+        # Calcular totales - EXCLUIR ENTREGAS CANCELADAS
+        # Sumar solo las yardas de entregas NO canceladas
+        entregas_activas = entregas_existentes.exclude(estado='cancelado')
+        total_yardas_asignadas = sum([float(e.yardas_asignadas) for e in entregas_activas])
         
-        entregas_completadas = entregas_existentes.filter(entregado=True).count()
+        # También excluir canceladas para las entregas completadas
+        entregas_completadas = entregas_activas.filter(entregado=True).count()
+        
+        # Calcular yardas pendientes
+        yardas_pendientes = float(pedido.cantidad_yardas) - total_yardas_asignadas if pedido.cantidad_yardas else 0
         
         context = {
             **self.admin_site.each_context(request),
@@ -211,6 +218,7 @@ class PedidoAdmin(ModelAdmin):
             'yardas_pendientes': yardas_pendientes,
             'total_entregas': entregas_existentes.count(),
             'entregas_completadas': entregas_completadas,
+            'entregas_canceladas': entregas_existentes.filter(estado='cancelado').count(),
             'opts': self.model._meta,
             'app_label': self.model._meta.app_label,
             'has_change_permission': self.has_change_permission(request),
@@ -290,18 +298,56 @@ class EntregaAdmin(ModelAdmin):
    
 
     def marcar_iniciado_view(self, request, entrega_id):
+        """Vista para iniciar una entrega"""
         try:
+            # Obtener la entrega
             entrega = Entrega.objects.get(id=entrega_id)
-            entrega.marcar_como_iniciado()
-            messages.success(request, f'Entrega {entrega.codigo_entrega} marcada como "En Camino"')
             
-            # Redirigir a la vista de entregas del pedido
-            return HttpResponseRedirect(
-                reverse('admin:pedido-entrega', args=[entrega.pedido.id])
-            )
+            # Intentar iniciar la entrega
+            entrega.marcar_como_iniciado()
+            
+            # Éxito
+            messages.success(request, f'✅ Entrega {entrega.codigo_entrega} iniciada exitosamente.')
+            
+        except ValidationError as e:
+            # Capturar errores de validación y mostrarlos como mensajes
+            error_message = str(e)
+            
+            # Si es una lista, tomar el primer mensaje
+            if hasattr(e, 'messages') and e.messages:
+                if isinstance(e.messages, list):
+                    error_message = e.messages[0]
+                else:
+                    error_message = str(e.messages)
+            
+            # Mostrar mensaje de error
+            messages.error(request, f'❌ {error_message}')
             
         except Entrega.DoesNotExist:
-            messages.error(request, 'Entrega no encontrada')
+            messages.error(request, '❌ Entrega no encontrada.')
+            
+        except Exception as e:
+            # Error inesperado
+            messages.error(request, f'❌ Error inesperado: {str(e)}')
+        
+        # Redirigir siempre
+        try:
+            if 'entrega' in locals() and hasattr(entrega, 'pedido') and entrega.pedido:
+                return HttpResponseRedirect(
+                    reverse('admin:pedido-entrega', args=[entrega.pedido.id])
+                )
+            else:
+                # Intentar obtener pedido_id de los parámetros GET
+                pedido_id = request.GET.get('pedido_id')
+                if pedido_id:
+                    return HttpResponseRedirect(
+                        reverse('admin:pedido-entrega', args=[pedido_id])
+                    )
+                else:
+                    return HttpResponseRedirect(reverse('admin:sistema_entrega_changelist'))
+                    
+        except Exception:
+            # Si hay error en la redirección, ir a la lista de entregas
             return HttpResponseRedirect(reverse('admin:sistema_entrega_changelist'))
         
     def marcar_completado_view(self, request, entrega_id):

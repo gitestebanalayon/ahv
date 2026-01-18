@@ -84,6 +84,30 @@
         background: linear-gradient(90deg, #10b981, #3b82f6);
         transition: width 0.3s ease;
     }
+
+
+    /* NUEVOS ESTILOS PARA YARDAS CANCELADAS */
+    .yardas-canceladas {
+        text-decoration: line-through;
+        color: #9ca3af !important;
+        opacity: 0.6;
+    }
+
+    .cancelada-info {
+        background-color: #f3f4f6;
+        border: 1px dashed #d1d5db;
+        border-radius: 6px;
+        padding: 10px;
+        margin-top: 10px;
+    }
+
+    .cancelada-label {
+        color: #ef4444;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
 </style>
 {% endblock %}
 
@@ -92,28 +116,35 @@
     <div class="module">
         <div class="container mx-auto ">
             <div x-data="{ filterOpen: false }">
-                <!-- Tarjeta de estadísticas -->
+                <!-- En la sección de estadísticas -->
                 <div class="stats-card">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
                         <div class="stat-item">
                             <span class="material-symbols-outlined stat-icon">local_shipping</span>
                             <div>
                                 <div class="stat-value">{{ total_entregas }}</div>
-                                <div class="stat-label">Entregas Programadas</div>
+                                <div class="stat-label">Entregas Totales</div>
                             </div>
                         </div>
                         <div class="stat-item">
                             <span class="material-symbols-outlined stat-icon">check_circle</span>
                             <div>
                                 <div class="stat-value">{{ entregas_completadas }}</div>
-                                <div class="stat-label">Entregas Completadas</div>
+                                <div class="stat-label">Completadas</div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <span class="material-symbols-outlined stat-icon">close</span>
+                            <div>
+                                <div class="stat-value">{{ entregas_canceladas }}</div>
+                                <div class="stat-label">Canceladas</div>
                             </div>
                         </div>
                         <div class="stat-item">
                             <span class="material-symbols-outlined stat-icon">straighten</span>
                             <div>
                                 <div class="stat-value">{{ total_yardas_asignadas|floatformat:1 }}</div>
-                                <div class="stat-label">Yardas Asignadas</div>
+                                <div class="stat-label">Yardas Activas</div>
                             </div>
                         </div>
                         <div class="stat-item">
@@ -129,7 +160,7 @@
                     {% if pedido.cantidad_yardas %}
                     <div class="mt-4">
                         <div class="flex justify-between text-sm">
-                            <span>Progreso de asignación</span>
+                            <span>Progreso de asignación (excluyendo canceladas)</span>
                             <span>{{ total_yardas_asignadas|floatformat:1 }} / {{ pedido.cantidad_yardas|floatformat:1 }} yardas</span>
                         </div>
                         <div class="progress-bar">
@@ -137,6 +168,16 @@
                                 style="width: {% widthratio total_yardas_asignadas pedido.cantidad_yardas 100 %}%">
                             </div>
                         </div>
+                        
+                        <!-- Información sobre entregas canceladas -->
+                        <!-- {% if entregas_canceladas > 0 %}
+                        <div class="cancelada-info mt-4">
+                            <div class="cancelada-label">
+                                <span class="material-symbols-outlined text-sm">info</span>
+                                {{ entregas_canceladas }} entrega(s) cancelada(s) - Yardas excluidas del total
+                            </div>
+                        </div>
+                        {% endif %} -->
                     </div>
                     {% endif %}
                 </div>
@@ -339,20 +380,45 @@
                                             <!-- Yardas Asignadas -->
                                             <td class="field-yardas align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
                                                 data-label="Yardas">
+                                                {% if entrega.estado == 'cancelado' %}
+                                                <!-- Para entregas canceladas - mostrar tachado -->
+                                                <div class="flex flex-col">
+                                                    <span class="font-semibold yardas-canceladas">
+                                                        {{ entrega.yardas_asignadas|floatformat:1 }} yardas
+                                                    </span>
+                                                    <span class="text-xs text-red-500">
+                                                        <span class="material-symbols-outlined text-xs">cancel</span> Cancelada
+                                                    </span>
+                                                </div>
+                                                {% else %}
+                                                <!-- Para entregas activas -->
                                                 <div class="flex flex-col">
                                                     <span class="font-semibold">{{ entrega.yardas_asignadas|floatformat:1 }} yardas</span>
                                                     <span class="text-xs text-gray-500">
                                                         {% widthratio entrega.yardas_asignadas pedido.cantidad_yardas 100 %}% del total
                                                     </span>
                                                 </div>
+                                                {% endif %}
                                             </td>
 
                                             <!-- Fecha y hora salida -->
                                             <td class="field-fecha align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
                                                 data-label="Fecha/Hora">
-                                                <div class="flex flex-col">
-                                                    <span class="font-semibold">{{ entrega.fecha_hora_salida|date:"d/m/Y" }}</span>
-                                                    <span class="text-xs text-gray-500">Hora: {{ entrega.fecha_hora_salida|time:"H:i" }}</span>
+                                                <div class="flex items-center">
+                                                    {% if entrega.fecha_hora_salida %}
+                                                        <div class="flex flex-col">
+                                                            <span class="font-semibold text-gray-800 dark:text-gray-200">
+                                                                {{ entrega.fecha_hora_salida|date:"d/m/Y" }}
+                                                            </span>
+                                                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                                {{ entrega.fecha_hora_salida|time:"H:i" }}
+                                                            </span>
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="flex items-center gap-2 text-gray-400 dark:text-gray-500">
+                                                            -
+                                                        </div>
+                                                    {% endif %}
                                                 </div>
                                             </td>
 
@@ -482,14 +548,14 @@
                                                     {% endif %}
                                                     
                                                     <!-- Eliminar (excepto entregado) -->
-                                                    {% if entrega.estado != 'entregado' %}
+                                                    <!-- {% if entrega.estado != 'entregado' %}
                                                         <a class="btn p-1.5 rounded transition-colors"
                                                             href="{% url 'admin:sistema_entrega_delete' entrega.id %}?pedido_id={{ pedido.id }}"
                                                             title="Eliminar entrega"
                                                             onclick="return confirm('¿Está seguro de eliminar esta entrega?\\n\\nEsta acción no se puede deshacer.')">
                                                             <span class="material-symbols-outlined text-red-700 dark:text-red-200 text-lg">delete</span>
                                                         </a>
-                                                    {% endif %}
+                                                    {% endif %} -->
                                                 </div>
                                             </td>
 

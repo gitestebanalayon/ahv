@@ -113,13 +113,13 @@ class Entrega(models.Model):
         if self.yardas_asignadas <= 0:
             raise ValidationError("Las yardas asignadas deben ser mayores a 0")
         
-        # Verificar que conductor esté disponible
-        if not self.pk and self.conductor.estado_conductor_nombre.nombre != 'Disponible':
-            raise ValidationError(f"El conductor {self.conductor.nombre} no está disponible")
+        # # Verificar que conductor esté disponible
+        # if not self.pk and self.conductor.estado_conductor_nombre.nombre == 'En Viaje':
+        #     raise ValidationError(f"El conductor {self.conductor.nombre} actualmente en un viaje activo")
         
-        # Verificar que vehículo esté disponible
-        if not self.pk and self.vehiculo.estado_vehiculo_nombre.nombre != 'Disponible':
-            raise ValidationError(f"El vehículo {self.vehiculo.alias} no está disponible")
+        # # Verificar que vehículo esté disponible
+        # if not self.pk and self.vehiculo.estado_vehiculo_nombre.nombre == 'En Viaje':
+        #     raise ValidationError(f"El vehículo {self.vehiculo.alias} actualmente en un viaje activo")
   
     def save(self, *args, **kwargs):
          # Validar que yardas_asignadas sea mayor a 0
@@ -160,30 +160,103 @@ class Entrega(models.Model):
                 self.secuencia = ultima_secuencia['max_secuencia'] + 1
         
          # Si es una nueva entrega, marcar conductor y vehículo como ocupados
-        if not self.pk:
-            try:
-                # Obtener instancias de los estados
-                estado_conductor_en_viaje = EstadoConductor.objects.get(nombre='En Viaje')
-                estado_vehiculo_en_viaje = EstadoVehiculo.objects.get(nombre='En Viaje')
+        # if not self.pk:
+        #     try:
+        #         # Obtener instancias de los estados
+        #         estado_conductor_en_viaje = EstadoConductor.objects.get(nombre='En Viaje')
+        #         estado_vehiculo_en_viaje = EstadoVehiculo.objects.get(nombre='En Viaje')
                 
-                # Actualizar estados
-                self.conductor.estado_conductor_nombre = estado_conductor_en_viaje
-                self.conductor.save()
+        #         # Actualizar estados
+        #         self.conductor.estado_conductor_nombre = estado_conductor_en_viaje
+        #         self.conductor.save()
                 
-                self.vehiculo.estado_vehiculo_nombre = estado_vehiculo_en_viaje
-                self.vehiculo.save()
-            except (EstadoConductor.DoesNotExist, EstadoVehiculo.DoesNotExist) as e:
-                # Manejar el caso si los estados no existen
-                raise ValidationError(f"Estado no encontrado: {e}")
+        #         self.vehiculo.estado_vehiculo_nombre = estado_vehiculo_en_viaje
+        #         self.vehiculo.save()
+        #     except (EstadoConductor.DoesNotExist, EstadoVehiculo.DoesNotExist) as e:
+        #         # Manejar el caso si los estados no existen
+        #         raise ValidationError(f"Estado no encontrado: {e}")
         
         super().save(*args, **kwargs)
     
     def marcar_como_iniciado(self):
         """Marca la entrega como iniciada"""
-        if self.estado == 'programado':
+        try:
+            # ========== VALIDACIONES ==========
+            
+            # 1. Validar estado de la entrega
+            if self.estado != 'programado':
+                raise ValidationError(
+                    f"No se puede iniciar la entrega. Estado actual: '{self.get_estado_display()}'. "
+                    f"Debe estar en estado 'Programado'."
+                )
+            
+            # 2. Validar que el conductor existe
+            if not hasattr(self, 'conductor') or self.conductor is None:
+                raise ValidationError("No hay conductor asignado a esta entrega.")
+            
+            # 3. Validar estado del conductor
+            estado_conductor = self.conductor.estado_conductor_nombre.nombre
+            if estado_conductor != 'Disponible':
+                if estado_conductor == 'En Viaje':
+                    raise ValidationError(f"El conductor '{self.conductor.nombre}' está actualmente en otra entrega.")
+                elif estado_conductor == 'Descanso':
+                    raise ValidationError(f"El conductor '{self.conductor.nombre}' está en descanso.")
+                elif estado_conductor == 'Vacaciones':
+                    raise ValidationError(f"El conductor '{self.conductor.nombre}' está de vacaciones.")
+                else:
+                    raise ValidationError(f"El conductor '{self.conductor.nombre}' no está disponible. Estado: '{estado_conductor}'")
+            
+            # 4. Validar que el vehículo existe
+            if not hasattr(self, 'vehiculo') or self.vehiculo is None:
+                raise ValidationError("No hay vehículo asignado a esta entrega.")
+            
+            # 5. Validar estado del vehículo
+            estado_vehiculo = self.vehiculo.estado_vehiculo_nombre.nombre
+            if estado_vehiculo != 'Disponible':
+                if estado_vehiculo == 'En Viaje':
+                    raise ValidationError(f"El vehículo '{self.vehiculo.alias}' está actualmente en otra entrega.")
+                elif estado_vehiculo == 'Mantenimiento':
+                    raise ValidationError(f"El vehículo '{self.vehiculo.alias}' está en mantenimiento.")
+                elif estado_vehiculo == 'Reparación':
+                    raise ValidationError(f"El vehículo '{self.vehiculo.alias}' está en reparación.")
+                else:
+                    raise ValidationError(f"El vehículo '{self.vehiculo.alias}' no está disponible. Estado: '{estado_vehiculo}'")
+            
+            # 6. Validar yardas asignadas
+            if not self.yardas_asignadas or float(self.yardas_asignadas) <= 0:
+                raise ValidationError("Las yardas asignadas deben ser mayores a 0.")
+            
+            # ========== EJECUCIÓN ==========
+            
+            # Obtener estados "En Viaje"
+            estado_conductor_en_viaje = EstadoConductor.objects.get(nombre='En Viaje')
+            estado_vehiculo_en_viaje = EstadoVehiculo.objects.get(nombre='En Viaje')
+            
+            # Actualizar estados del conductor y vehículo PRIMERO
+            self.conductor.estado_conductor_nombre = estado_conductor_en_viaje
+            self.conductor.save()
+            
+            self.vehiculo.estado_vehiculo_nombre = estado_vehiculo_en_viaje
+            self.vehiculo.save()
+            
+            # Luego actualizar la entrega
             self.estado = 'en_camino'
             self.fecha_hora_salida = timezone.now()
+            
+            # Agregar nota del inicio
+            nota_anterior = self.nota or ""
+            self.nota = f"[{timezone.now().strftime('%d/%m/%Y %H:%M:%S')}] INICIADA - Conductor: {self.conductor.nombre}, Vehículo: {self.vehiculo.alias}\n{nota_anterior}"
+            
             self.save()
+            
+        except (EstadoConductor.DoesNotExist, EstadoVehiculo.DoesNotExist) as e:
+            raise ValidationError(f"Error del sistema: Estado no configurado. Contacte al administrador.")
+        except Exception as e:
+            # Re-levantar ValidationError si ya lo es
+            if isinstance(e, ValidationError):
+                raise e
+            # Para otros errores
+            raise ValidationError(f"Error al iniciar la entrega: {str(e)}")
     
     def marcar_como_completado(self):
         """Marca la entrega como completada y libera recursos"""
@@ -244,6 +317,8 @@ class Entrega(models.Model):
                 self.vehiculo.estado_vehiculo_nombre = estado_vehiculo_disponible
                 self.vehiculo.save()
                 
+                self.fecha_hora_salida = None
+                
                 self.save()
                 
             except (EstadoConductor.DoesNotExist, EstadoVehiculo.DoesNotExist) as e:
@@ -254,28 +329,8 @@ class Entrega(models.Model):
         if self.estado == 'cancelado':
             self.estado = 'programado'
             self.entregado = False  # Asegurar que se vuelva a False
-            
-            try:
-                # Verificar disponibilidad del conductor y vehículo
-                from apps.auxiliares.models.estado_conductor import EstadoConductor
-                from apps.auxiliares.models.estado_vehiculo import EstadoVehiculo
+  
                 
-                estado_conductor_en_viaje = EstadoConductor.objects.get(nombre='En Viaje')
-                estado_vehiculo_en_viaje = EstadoVehiculo.objects.get(nombre='En Viaje')
-                
-                # Marcar conductor y vehículo como ocupados nuevamente
-                self.conductor.estado_conductor_nombre = estado_conductor_en_viaje
-                self.conductor.save()
-                
-                self.vehiculo.estado_vehiculo_nombre = estado_vehiculo_en_viaje
-                self.vehiculo.save()
-                
-                self.save()
-                
-            except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error al restablecer entrega {self.id}: {str(e)}")
-                raise ValidationError(f"No se pudo restablecer la entrega: {str(e)}")
+            self.save()
         else:
             raise ValidationError(f"No se puede restablecer una entrega en estado '{self.estado}'")
