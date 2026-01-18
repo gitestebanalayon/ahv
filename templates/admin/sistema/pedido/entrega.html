@@ -356,12 +356,24 @@
                                                 </div>
                                             </td>
 
-                                             <!-- Fecha y hora entrega -->
+                                            <!-- Fecha y hora entrega -->
                                             <td class="field-fecha align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
                                                 data-label="Fecha/Hora">
-                                                <div class="flex flex-col">
-                                                    <span class="font-semibold">{{ entrega.fecha_hora_entrega|date:"d/m/Y" }}</span>
-                                                    <span class="text-xs text-gray-500">Hora: {{ entrega.fecha_hora_entrega|time:"H:i" }}</span>
+                                                <div class="flex items-center">
+                                                    {% if entrega.fecha_hora_entrega %}
+                                                        <div class="flex flex-col">
+                                                            <span class="font-semibold text-gray-800 dark:text-gray-200">
+                                                                {{ entrega.fecha_hora_entrega|date:"d/m/Y" }}
+                                                            </span>
+                                                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                                {{ entrega.fecha_hora_entrega|time:"H:i" }}
+                                                            </span>
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="flex items-center gap-2 text-gray-400 dark:text-gray-500">
+                                                            -
+                                                        </div>
+                                                    {% endif %}
                                                 </div>
                                             </td>
 
