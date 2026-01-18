@@ -458,13 +458,6 @@
                                                             title="Editar entrega">
                                                             <span class="material-symbols-outlined text-blue-700 dark:text-blue-200 text-lg">edit</span>
                                                         </a>
-                                                        
-                                                        <!-- Ver detalles -->
-                                                        <a class="btn hover:bg-gray-100 dark:hover:bg-gray-800 p-1.5 rounded transition-colors"
-                                                            href="{% url 'admin:sistema_entrega_change' entrega.id %}?pedido_id={{ pedido.id }}"
-                                                            title="Ver detalles">
-                                                            <span class="material-symbols-outlined text-gray-700 dark:text-gray-200 text-lg">info</span>
-                                                        </a>
                                                     {% endif %}
                                                     
                                                     <!-- Estado Entregado solo ver detalles -->
