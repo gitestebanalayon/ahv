@@ -12,6 +12,7 @@ from apps.cuenta.views.auth                     import AuthController
 from apps.cuenta.views.usuario                  import UsuarioController
 
 from apps.sistema.views.conductor import router as conductor
+from apps.sistema.views.pedido import router as pedido
 
 api = NinjaExtraAPI(
                         title           = "AHV",
@@ -99,3 +100,4 @@ api.register_controllers(
 )
 
 api.add_router("/conductor/",           conductor           )
+api.add_router("/pedido/",              pedido              )

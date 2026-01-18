@@ -98,7 +98,51 @@ class PedidoAdmin(ModelAdmin):
         )
 
     def estado(self, obj):
-        return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">{}</span>', obj.estado_pedido)
+        # Definir colores y clases para cada estado
+        estados_colores = {
+            'pendiente': {
+                'clase': 'badge-warning',
+                'icono': 'schedule',  # Reloj
+            },
+            'programado': {
+                'clase': 'badge-info',
+                'icono': 'calendar_month'  # Calendario
+            },
+            'en camino': {
+                'clase': 'badge-primary',
+                'icono': 'delivery_truck_speed'  # Camión
+            },
+            'completado': {
+                'clase': 'badge-success',
+                'icono': 'done_all'  # Check
+            },
+            'cancelado': {
+                'clase': 'badge-danger',
+                'icono': 'cancel'  # Cancel
+            }
+        }
+        
+        # Obtener el estado en minúsculas para comparación
+        estado_actual = str(obj.estado_pedido).lower().strip()
+        
+        # Obtener configuración del estado o usar valores por defecto
+        config = estados_colores.get(estado_actual, {
+            'clase': 'badge-secondary',
+            'icono': '❓'
+        })
+        
+        # Formatear el HTML con el estado
+        return format_html(
+            '<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold {}">'
+                '<span class="material-symbols-outlined text-sm">'
+                    '{}'
+                '</span>'
+                    '{}'
+            '</span>',
+            config['clase'],
+            config['icono'],
+            obj.estado_pedido
+        )
     
     def despachos(self, obj):
         return format_html('<a class="btn" href="/admin/sistema/pedido/entrega/{}/"><span class="material-symbols-outlined text-green-700 dark:text-green-200">delivery_truck_bolt</span></a>', obj.id)
@@ -175,7 +219,6 @@ class PedidoAdmin(ModelAdmin):
             'admin/js/pedido_modal.js',
             'admin/js/pedido_admin.js',
             'admin/js/pedido_asignacion.js')
-
         
 @admin.register(Entrega)
 class EntregaAdmin(ModelAdmin):
@@ -195,7 +238,7 @@ class EntregaAdmin(ModelAdmin):
     def eliminar(self, obj):
         return format_html('<a class="btn" href="/admin/sistema/entrega/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
 
-    exclude = ('pedido',)
+    exclude = ('pedido', 'secuencia')
  
     def save_model(self, request, obj, form, change):
         # Si es una creación nueva y viene de un pedido específico
@@ -273,7 +316,7 @@ class EntregaAdmin(ModelAdmin):
         # Si no hay pedido_id, usar el comportamiento por defecto
         return super().response_delete(request, obj_display, obj_id)
 
-    list_display        = ( 'codigo_entrega', 'pedido', 'vehiculo', 'conductor', 'entregado',  'editar','eliminar')
+    list_display        = ( 'codigo_entrega', 'pedido', 'conductor', 'vehiculo', 'entregado',  'editar','eliminar')
     list_filter         = []
     search_fields       = []
     list_display_links  = None
@@ -281,5 +324,24 @@ class EntregaAdmin(ModelAdmin):
     list_select_related = True
     readonly_fields     = ('codigo_entrega','is_delete')
     
+    fieldsets = [
+        (
+            ("Asignación de entrega"), 
+            {
+                "classes":  ["tab"],
+                "fields":   ['conductor', 'vehiculo', 'yardas_asignadas'],
+            }
+        ),
+        (
+            ("Control de entregas"), 
+            {
+                "classes":  ["tab"],
+                "fields":   ['entregado', 'fecha_entrega','hora_entrega', 'nota'],
+            }
+        ),
+    ]
     
+    class Media:
+        js = (
+            'admin/js/entrega_form_add.js',)
    

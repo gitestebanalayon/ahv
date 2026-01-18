@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db                                  import models
 from django.db.models import Max
 from apps.auxiliares.models.estado_pedido       import EstadoPedido
@@ -61,12 +62,12 @@ class Pedido(models.Model):
 class Entrega(models.Model):
     codigo_entrega          = models.CharField('Código de Entrega',         max_length = 20,                                                                    )
     pedido                  = models.ForeignKey(Pedido,                     on_delete = models.PROTECT, )
-    vehiculo                = models.OneToOneField(Vehiculo,                on_delete=models.PROTECT,    )
     conductor               = models.OneToOneField(Conductor,               on_delete=models.PROTECT,    )
+    vehiculo                = models.OneToOneField(Vehiculo,                on_delete=models.PROTECT,    )
     secuencia               = models.IntegerField('Secuencia de Entrega')
-    yardas_asignadas        = models.DecimalField('Yardas Asignadas',       max_digits = 10, decimal_places = 1,                      )
-    fecha_entrega           = models.DateField('Fecha Entrega',                                                                                             )
-    hora_entrega            = models.TimeField('Hora Entrega',                                                                                              )
+    yardas_asignadas        = models.DecimalField('Yardas Asignadas',       max_digits = 10, decimal_places = 1,    validators=[MinValueValidator(0.1)]                  )
+    fecha_entrega           = models.DateField('Fecha Entrega',              blank = True, null = True                                                                               )
+    hora_entrega            = models.TimeField('Hora Entrega',               blank = True, null = True                                                                               )
     entregado               = models.BooleanField('Es Entregado',          default = False                            )
     nota                    = models.TextField('Nota',                                                  blank = True,   null = True                  )
     is_delete               = models.BooleanField('Es Eliminado',          default = False                            )
@@ -82,6 +83,10 @@ class Entrega(models.Model):
         return f'{self.codigo_entrega} - {self.pedido.codigo_pedido}'
   
     def save(self, *args, **kwargs):
+         # Validar que yardas_asignadas sea mayor a 0
+      
+    
+        
         # Generar código automático solo si es un nuevo registro
         if not self.codigo_entrega:
             # Obtener el último número de entrega
@@ -102,5 +107,19 @@ class Entrega(models.Model):
                 nuevo_numero = ultimo_numero + 1
             
             self.codigo_entrega = f'E{nuevo_numero}'
+            
+         # Generar secuencia automática basada en el pedido
+        if not self.pk:  # Solo para nuevos registros
+            # Obtener la última secuencia para este pedido
+            ultima_secuencia = Entrega.objects.filter(
+                pedido=self.pedido
+            ).aggregate(max_secuencia=Max('secuencia'))
+            
+            if ultima_secuencia['max_secuencia'] is None:
+                # Primera entrega para este pedido
+                self.secuencia = 1
+            else:
+                # Siguiente secuencia
+                self.secuencia = ultima_secuencia['max_secuencia'] + 1
         
         super().save(*args, **kwargs)
