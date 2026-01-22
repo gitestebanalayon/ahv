@@ -15,7 +15,7 @@ from apps.cuenta.models                         import User
 
 
 class Pedido(models.Model):
-    codigo_pedido           = models.CharField('Código de Pedido',     max_length = 20,                          unique=True                                          )
+    codigo_pedido           = models.CharField('Número de Orden',     max_length = 20,                          unique=True                                          )
     cliente                 = models.ForeignKey(User,                  on_delete=models.PROTECT,                                      )
     cantidad_yardas         = models.DecimalField('Cantidad de Yardas',       max_digits = 10, decimal_places = 1,                      )
     direccion_entrega       = models.CharField('Dirección Entrega',     max_length = 255,                                                                   )
@@ -63,7 +63,7 @@ class Pedido(models.Model):
             else:
                 nuevo_numero = ultimo_numero + 1
             
-            self.codigo_pedido = f'P{nuevo_numero}'
+            self.codigo_pedido = f'N{nuevo_numero}'
         
         super().save(*args, **kwargs)
     

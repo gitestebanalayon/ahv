@@ -77,7 +77,7 @@ class PedidoAdmin(ModelAdmin):
                     data-estado="{}"
                     data-nota="{}"
                     data-cantidad-yardas="{}"
-                    data-precio-yarda="{}"
+                
                     data-precio-total="{}">
                 <span class="material-symbols-outlined">info</span>
             </a>
@@ -95,7 +95,7 @@ class PedidoAdmin(ModelAdmin):
             obj.estado_pedido,
             obj.nota or "",
             obj.cantidad_yardas or "",
-            obj.precio_yarda or "",
+            # obj.precio_yarda or "",
             obj.precio_total or ""
         )
 
@@ -152,17 +152,39 @@ class PedidoAdmin(ModelAdmin):
     def entregas_realizadas(self, obj):
         # Mostrar el número de entregas realizadas para este pedido
         count = obj.entrega_set.count()
-        return format_html(
-            '<a class="badge bg-blue-100 text-blue-800 px-2 py-1 rounded" '
-            'href="/admin/sistema/entrega/?pedido__id__exact={}" title="Ver entregas">'
-            '{} entrega(s)'
+
+        if count == 0:
+            return format_html(
+            '<a class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-base-100 text-base-700 dark:bg-base-500/20 dark:text-base-200" '
+            'title="Ver entregas">'
+            'Sin entregas'
             '</a>',
-            obj.id,
+        )
+
+        if count == 1:
+            return format_html(
+            '<a class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400" '
+            'title="Ver entregas">'
+            '{} entrega'
+            '</a>',
+            count
+        )
+
+        return format_html(
+            '<a class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400" '
+            'title="Ver entregas">'
+            '{} entregas'
+            '</a>',
             count
         )
     entregas_realizadas.short_description = "Entregas"    
         
-    list_display        = ('cliente', 'codigo_pedido', 'cantidad_yardas', 'precio_yarda', 'precio_total', 'estado', 'mas_detalles', 'despachos',)
+    def numero_orden(self, obj):
+        return format_html('<span class="font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">{}</span>', obj.codigo_pedido)
+        
+  
+
+    list_display        = ('cliente', 'numero_orden', 'cantidad_yardas', 'slump', 'estado', 'mas_detalles', 'entregas_realizadas', 'despachos',)
     list_filter         = []
     search_fields       = ('cliente__tipo_documento','cliente__numero', 'codigo_pedido',)
     list_display_links  = None
@@ -229,8 +251,7 @@ class PedidoAdmin(ModelAdmin):
     class Media:
         js = (
             'admin/js/pedido_modal.js',
-            'admin/js/pedido_admin.js',
-            'admin/js/pedido_asignacion.js')
+            'admin/js/pedido_admin.js')
         
 @admin.register(Entrega)
 class EntregaAdmin(ModelAdmin):
