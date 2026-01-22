@@ -44,14 +44,8 @@ class ConductorAdmin(ModelAdmin):
     def estado_conductor(self, obj):
         return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">{}</span>', obj.estado_conductor_nombre)
         
-    def tiene_vehiculo(self, obj):
-        if obj.vehiculo_id:
-            return format_html('<div class="inline-flex font-semibold items-center justify-center leading-normal h-6 w-6 rounded-full uppercase whitespace-nowrap bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400"> <span class="material-symbols-outlined">check_small</span> </div>') 
-        else:
-            return format_html('<div class="inline-flex font-semibold items-center justify-center leading-normal h-6 w-6 rounded-full uppercase whitespace-nowrap bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400"> <span class="material-symbols-outlined">close_small</span> </div>')
-
-
-    list_display        = ('nombre', 'licencia', 'telefono', 'estado_conductor', 'tiene_vehiculo', 'editar','eliminar')
+  
+    list_display        = ('nombre', 'licencia', 'telefono', 'estado_conductor', 'editar','eliminar')
     list_filter         = []
     search_fields       = []
     list_display_links  = None

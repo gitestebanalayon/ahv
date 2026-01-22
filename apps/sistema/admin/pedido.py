@@ -110,7 +110,7 @@ class PedidoAdmin(ModelAdmin):
                 'clase': 'badge-info',
                 'icono': 'calendar_month'  # Calendario
             },
-            'en camino': {
+            'en viaje': {
                 'clase': 'badge-primary',
                 'icono': 'delivery_truck_speed'  # Camión
             },
@@ -162,7 +162,7 @@ class PedidoAdmin(ModelAdmin):
         )
     entregas_realizadas.short_description = "Entregas"    
         
-    list_display        = ('cliente', 'codigo_pedido', 'cantidad_yardas', 'precio_yarda', 'precio_total', 'estado', 'mas_detalles', 'despachos', 'editar','eliminar',)
+    list_display        = ('cliente', 'codigo_pedido', 'cantidad_yardas', 'precio_yarda', 'precio_total', 'estado', 'mas_detalles', 'despachos',)
     list_filter         = []
     search_fields       = ('cliente__tipo_documento','cliente__numero', 'codigo_pedido',)
     list_display_links  = None
@@ -171,22 +171,22 @@ class PedidoAdmin(ModelAdmin):
     readonly_fields    = ('cliente', 'codigo_pedido' , 'fecha_entrega', 'hora_entrega', 'direccion_entrega')
     
      # Configuración de los formularios de edición y creación
-    fieldsets = [
-        (
-            ("Asignación"), 
-            {
-                "classes":  ["tab"],
-                "fields":   ['agregados', 'slump', 'estado_pedido'],
-            }
-        ),
-        (
-            ("Precios"), 
-            {
-                "classes":  ["tab"],
-                "fields":   ['cantidad_yardas','precio_yarda','precio_total'],
-            }
-        ),
-    ]
+    # fieldsets = [
+    #     (
+    #         ("Asignación"), 
+    #         {
+    #             "classes":  ["tab"],
+    #             "fields":   ['agregados', 'slump', 'estado_pedido'],
+    #         }
+    #     ),
+    #     (
+    #         ("Precios"), 
+    #         {
+    #             "classes":  ["tab"],
+    #             "fields":   ['cantidad_yardas','precio_yarda','precio_total'],
+    #         }
+    #     ),
+    # ]
     
     # VISTA PERSONALIZADA PARA DESPACHOS
     # En tu vista (admin.py)

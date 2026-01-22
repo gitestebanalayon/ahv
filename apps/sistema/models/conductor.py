@@ -3,7 +3,7 @@ from apps.auxiliares.models.estado_conductor    import EstadoConductor
 from apps.sistema.models.vehiculo               import Vehiculo
 
 class Conductor(models.Model):
-    vehiculo                = models.OneToOneField(Vehiculo,               on_delete=models.PROTECT,       related_name='vehiculo',  null=True, blank=True)
+    # vehiculo                = models.OneToOneField(Vehiculo,               on_delete=models.PROTECT,       related_name='vehiculo',  null=True, blank=True)
     nombre                  = models.CharField('Nombre',                max_length = 100,                                       )
     licencia                = models.CharField('Licencia',              max_length = 50,    unique = True                       )
     telefono                = models.CharField('Teléfono',              max_length = 15,                                        )    
