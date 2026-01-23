@@ -2,8 +2,9 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
+
 from django.db                                  import models
-from django.db.models import Max
+from django.db.models import Max, Sum
 
 from apps.auxiliares.models.estado_conductor import EstadoConductor
 from apps.auxiliares.models.estado_vehiculo import EstadoVehiculo
@@ -14,7 +15,7 @@ from apps.cuenta.models                         import User
 
 
 class Pedido(models.Model):
-    codigo_pedido           = models.CharField('Código de Pedido',     max_length = 20,                          unique=True                                          )
+    codigo_pedido           = models.CharField('Número de Orden',     max_length = 20,                          unique=True                                          )
     cliente                 = models.ForeignKey(User,                  on_delete=models.PROTECT,                                      )
     cantidad_yardas         = models.DecimalField('Cantidad de Yardas',       max_digits = 10, decimal_places = 1,                      )
     direccion_entrega       = models.CharField('Dirección Entrega',     max_length = 255,                                                                   )
@@ -62,7 +63,7 @@ class Pedido(models.Model):
             else:
                 nuevo_numero = ultimo_numero + 1
             
-            self.codigo_pedido = f'P{nuevo_numero}'
+            self.codigo_pedido = f'N{nuevo_numero}'
         
         super().save(*args, **kwargs)
     
@@ -159,24 +160,44 @@ class Entrega(models.Model):
                 # Siguiente secuencia
                 self.secuencia = ultima_secuencia['max_secuencia'] + 1
         
-         # Si es una nueva entrega, marcar conductor y vehículo como ocupados
-        # if not self.pk:
-        #     try:
-        #         # Obtener instancias de los estados
-        #         estado_conductor_en_viaje = EstadoConductor.objects.get(nombre='En Viaje')
-        #         estado_vehiculo_en_viaje = EstadoVehiculo.objects.get(nombre='En Viaje')
-                
-        #         # Actualizar estados
-        #         self.conductor.estado_conductor_nombre = estado_conductor_en_viaje
-        #         self.conductor.save()
-                
-        #         self.vehiculo.estado_vehiculo_nombre = estado_vehiculo_en_viaje
-        #         self.vehiculo.save()
-        #     except (EstadoConductor.DoesNotExist, EstadoVehiculo.DoesNotExist) as e:
-        #         # Manejar el caso si los estados no existen
-        #         raise ValidationError(f"Estado no encontrado: {e}")
         
+        # Guardar primero la entrega para que se cuente en las consultas
         super().save(*args, **kwargs)
+            
+        # Verificar si se han completado todas las entregas del pedido
+        if self.pedido:
+            # Recalcular después del guardado
+            todas_entregas = Entrega.objects.filter(pedido=self.pedido)
+            total_asignado = todas_entregas.aggregate(
+                total=Sum('yardas_asignadas')
+            )['total'] or 0
+            
+            cantidad_requerida = self.pedido.cantidad_yardas
+            
+            # Verificar si se han asignado suficientes yardas
+            if total_asignado >= cantidad_requerida:
+                # Obtener estado 'Programado'
+                try:
+                    estado_programado = EstadoPedido.objects.get(nombre='Programado')
+                    
+                    # Solo cambiar si no está ya en estado 'Programado' o superior
+                    estados_avanzados = ['Programado', 'En Viaje', 'Completado', 'Entregado']
+                    if self.pedido.estado_pedido.nombre not in estados_avanzados:
+                        self.pedido.estado_pedido = estado_programado
+                        self.pedido.save()
+                        
+                        # Log para depuración
+                        # print(f"📦 Pedido {self.pedido.codigo_pedido} actualizado a 'Programado'")
+                        # print(f"   - Yardas requeridas: {cantidad_requerida}")
+                        # print(f"   - Yardas asignadas: {total_asignado}")
+                        # print(f"   - Entregas creadas: {todas_entregas.count()}")
+                except EstadoPedido.DoesNotExist:
+                    print("⚠️ Estado 'Programado' no encontrado en la base de datos")
+        
+               
+
+        
+     
     
     def marcar_como_iniciado(self):
         """Marca la entrega como iniciada"""
@@ -247,6 +268,14 @@ class Entrega(models.Model):
             nota_anterior = self.nota or ""
             self.nota = f"[{timezone.now().strftime('%d/%m/%Y %H:%M:%S')}] INICIADA - Conductor: {self.conductor.nombre}, Vehículo: {self.vehiculo.alias}\n{nota_anterior}"
             
+            # marcar estado del pedido como 'En Viaje' cuando una sola entrega inicia
+            estado_pedido_en_viaje = EstadoPedido.objects.get(nombre='En Viaje')
+            if self.pedido.estado_pedido.nombre != 'En Viaje':
+                self.pedido.estado_pedido = estado_pedido_en_viaje
+                self.pedido.save()
+        
+
+
             self.save()
             
         except (EstadoConductor.DoesNotExist, EstadoVehiculo.DoesNotExist) as e:
@@ -285,16 +314,11 @@ class Entrega(models.Model):
                 
                 if entregas_pendientes == 0:
                     # Todas las entregas están completas
-                    try:
-                        estado_pedido_completado = EstadoPedido.objects.get(nombre='Completado')
-                        self.pedido.estado_pedido = estado_pedido_completado
-                        self.pedido.save()
-                    except EstadoPedido.DoesNotExist:
-                        # Si no existe "Completado", usar "Entregado" o similar
-                        estado_pedido_entregado = EstadoPedido.objects.get(nombre='Entregado')
-                        self.pedido.estado_pedido = estado_pedido_entregado
-                        self.pedido.save()
                 
+                    estado_pedido_completado = EstadoPedido.objects.get(nombre='Completado')
+                    self.pedido.estado_pedido = estado_pedido_completado
+                    self.pedido.save()
+              
                 self.save()
                 
             except (EstadoConductor.DoesNotExist, EstadoVehiculo.DoesNotExist) as e:
@@ -306,20 +330,43 @@ class Entrega(models.Model):
             self.estado = 'cancelado'
             
             try:
-                # Obtener instancias de los estados disponibles
-                estado_conductor_disponible = EstadoConductor.objects.get(nombre='Disponible')
-                estado_vehiculo_disponible = EstadoVehiculo.objects.get(nombre='Disponible')
-                
-                # Liberar conductor y vehículo
-                self.conductor.estado_conductor_nombre = estado_conductor_disponible
-                self.conductor.save()
-                
-                self.vehiculo.estado_vehiculo_nombre = estado_vehiculo_disponible
-                self.vehiculo.save()
+                # Liberar conductor y vehículo si están asignados
+                if self.conductor and self.vehiculo:
+                    estado_conductor_disponible = EstadoConductor.objects.get(nombre='Disponible')
+                    estado_vehiculo_disponible = EstadoVehiculo.objects.get(nombre='Disponible')
+                    
+                    self.conductor.estado_conductor_nombre = estado_conductor_disponible
+                    self.conductor.save()
+                    
+                    self.vehiculo.estado_vehiculo_nombre = estado_vehiculo_disponible
+                    self.vehiculo.save()
                 
                 self.fecha_hora_salida = None
-                
                 self.save()
+                
+                # ACTUALIZACIÓN: VERIFICAR ESTADO DEL PEDIDO DESPUÉS DE CANCELAR
+                entregas_activas = Entrega.objects.filter(
+                    pedido=self.pedido
+                ).exclude(estado='cancelado')
+                
+                # Verificar si hay entregas en viaje
+                entregas_en_viaje = entregas_activas.filter(estado='en_camino').exists()
+                
+                if entregas_en_viaje:
+                    # Si hay entregas en viaje, mantener el pedido en "En Viaje"
+                    estado_pedido_en_viaje = EstadoPedido.objects.get(nombre='En Viaje')
+                    if self.pedido.estado_pedido.nombre != 'En Viaje':
+                        self.pedido.estado_pedido = estado_pedido_en_viaje
+                        self.pedido.save()
+                        print(f"✅ Pedido mantenido en 'En Viaje' después de cancelar entrega")
+                
+                # Solo marcar como "Pendiente" si NO hay entregas en viaje
+                elif entregas_activas.count() == 0:
+                    estado_pedido_pendiente = EstadoPedido.objects.get(nombre='Pendiente')
+                    if self.pedido.estado_pedido.nombre != 'Pendiente':
+                        self.pedido.estado_pedido = estado_pedido_pendiente
+                        self.pedido.save()
+                        print(f"✅ Pedido actualizado a 'Pendiente' (todas las entregas canceladas)")
                 
             except (EstadoConductor.DoesNotExist, EstadoVehiculo.DoesNotExist) as e:
                 raise ValidationError(f"Estado no encontrado: {e}")
@@ -328,9 +375,75 @@ class Entrega(models.Model):
         """Restablece una entrega cancelada a estado programado"""
         if self.estado == 'cancelado':
             self.estado = 'programado'
-            self.entregado = False  # Asegurar que se vuelva a False
-  
-                
+            self.entregado = False
+            
+            # Guardar primero el cambio en la entrega
             self.save()
+            
+            # VERIFICAR EL ESTADO ACTUAL DEL PEDIDO ANTES DE CAMBIARLO
+            # 1. Obtener todas las entregas del pedido (excluyendo canceladas)
+            entregas_activas = Entrega.objects.filter(
+                pedido=self.pedido
+            ).exclude(estado='cancelado')
+            
+            # 2. Verificar si hay alguna entrega "En Viaje"
+            entregas_en_viaje = entregas_activas.filter(estado='en_camino').exists()
+            entregas_programadas = entregas_activas.filter(estado='programado').exists()
+            entregas_entregadas = entregas_activas.filter(estado='entregado')
+            
+            # 3. Verificar si todas las entregas están entregadas
+            todas_entregadas = entregas_entregadas.count() == entregas_activas.count()
+            
+            # 4. Determinar el estado correcto del pedido
+            try:
+                if entregas_en_viaje:
+                    # Si hay alguna entrega en viaje, el pedido debe estar "En Viaje"
+                    estado_pedido_en_viaje = EstadoPedido.objects.get(nombre='En Viaje')
+                    if self.pedido.estado_pedido.nombre != 'En Viaje':
+                        self.pedido.estado_pedido = estado_pedido_en_viaje
+                        self.pedido.save()
+                        print(f"✅ Pedido {self.pedido.codigo_pedido} actualizado a 'En Viaje' (hay entregas en camino)")
+                
+                elif todas_entregadas:
+                    # Si todas las entregas están entregadas, el pedido debe estar "Completado"
+                    estado_pedido_completado = EstadoPedido.objects.get(nombre='Completado')
+                    if self.pedido.estado_pedido.nombre != 'Completado':
+                        self.pedido.estado_pedido = estado_pedido_completado
+                        self.pedido.save()
+                        print(f"✅ Pedido {self.pedido.codigo_pedido} actualizado a 'Completado' (todas entregadas)")
+                
+                elif entregas_programadas:
+                    # Si hay entregas programadas pero ninguna en viaje
+                    # Verificar si se han asignado todas las yardas
+                    total_yardas_activas = entregas_activas.aggregate(
+                        total=Sum('yardas_asignadas')
+                    )['total'] or 0
+                    
+                    if total_yardas_activas >= self.pedido.cantidad_yardas:
+                        # Yardas completas -> Pedido "Programado"
+                        estado_pedido_programado = EstadoPedido.objects.get(nombre='Programado')
+                        if self.pedido.estado_pedido.nombre != 'Programado':
+                            self.pedido.estado_pedido = estado_pedido_programado
+                            self.pedido.save()
+                            print(f"✅ Pedido {self.pedido.codigo_pedido} actualizado a 'Programado' (yardas completas)")
+                    else:
+                        # Yardas incompletas -> Pedido "Pendiente"
+                        estado_pedido_pendiente = EstadoPedido.objects.get(nombre='Pendiente')
+                        if self.pedido.estado_pedido.nombre != 'Pendiente':
+                            self.pedido.estado_pedido = estado_pedido_pendiente
+                            self.pedido.save()
+                            print(f"✅ Pedido {self.pedido.codigo_pedido} actualizado a 'Pendiente' (faltan yardas)")
+                
+                else:
+                    # Caso por defecto (no hay entregas activas)
+                    estado_pedido_pendiente = EstadoPedido.objects.get(nombre='Pendiente')
+                    if self.pedido.estado_pedido.nombre != 'Pendiente':
+                        self.pedido.estado_pedido = estado_pedido_pendiente
+                        self.pedido.save()
+                        print(f"✅ Pedido {self.pedido.codigo_pedido} actualizado a 'Pendiente' (caso por defecto)")
+                        
+            except EstadoPedido.DoesNotExist as e:
+                print(f"⚠️ Estado de pedido no encontrado: {e}")
+            
         else:
             raise ValidationError(f"No se puede restablecer una entrega en estado '{self.estado}'")

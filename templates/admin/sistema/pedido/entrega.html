@@ -333,10 +333,9 @@
                                             <!-- Código de Entrega -->
                                             <td class="field-codigo_entrega align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
                                                 data-label="Código Entrega">
-                                                <a href="{% url 'admin:sistema_entrega_change' entrega.id %}"
-                                                    class="font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                                <span class="font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                                                     {{ entrega.codigo_entrega }}
-                                                </a>
+                                                </span>
                                             </td>
 
                                             <!-- Secuencia -->
@@ -455,7 +454,7 @@
                                                     {% elif entrega.estado == 'en_camino' %}
                                                     <span
                                                         class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold badge-primary">
-                                                        <span class="material-symbols-outlined text-sm">directions_car</span>
+                                                        <span class="material-symbols-outlined text-sm">delivery_truck_speed</span>
                                                         En Camino
                                                     </span>
                                                     {% elif entrega.estado == 'programado' %}
@@ -529,7 +528,7 @@
                                                     {% endif %}
                                                     
                                                     <!-- Botones comunes -->
-                                                    {% if entrega.estado in 'programado,en_camino,cancelado' %}
+                                                    {% if entrega.estado in 'programado,cancelado' %}
                                                         <!-- Editar -->
                                                         <a class="btn p-1.5 rounded transition-colors"
                                                             href="{% url 'admin:sistema_entrega_change' entrega.id %}?pedido_id={{ pedido.id }}"
