@@ -247,7 +247,14 @@ class CustomerAdmin(admin.ModelAdmin):
             ("Permisos"),
             {
                 "classes":  ["tab"],
-                "fields":   ['is_staff',],
+                "fields":   ['is_staff','is_active',],
+            },
+        ),
+        (
+            ("Grupos"),
+            {
+                "classes":  ["tab"],
+                "fields":   ['groups',],
             },
         ),
         (
