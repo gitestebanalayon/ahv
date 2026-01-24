@@ -54,10 +54,10 @@ class PedidoAdmin(ModelAdmin):
         return custom_urls + urls
   
 
-    def editar(self, obj):
-        return format_html('<a class="btn" href="/admin/sistema/pedido/{}/change/"><span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span></a>', obj.id)
-    def eliminar(self, obj):
-        return format_html('<a class="btn" href="/admin/sistema/pedido/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
+    # def editar(self, obj):
+    #     return format_html('<a class="btn" href="/admin/sistema/pedido/{}/change/"><span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span></a>', obj.id)
+    # def eliminar(self, obj):
+    #     return format_html('<a class="btn" href="/admin/sistema/pedido/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
 
     def mas_detalles(self, obj):
         return format_html(
@@ -72,7 +72,6 @@ class PedidoAdmin(ModelAdmin):
                     data-fecha-entrega="{}"
                     data-hora-entrega="{}"
                     data-direccion="{}"
-                    data-agregados="{}"
                     data-slump="{}"
                     data-estado="{}"
                     data-nota="{}"
@@ -90,7 +89,7 @@ class PedidoAdmin(ModelAdmin):
             obj.fecha_entrega,
             obj.hora_entrega,
             obj.direccion_entrega,
-            obj.agregados or "",
+            # obj.agregados or "",
             obj.slump or "",
             obj.estado_pedido,
             obj.nota or "",
@@ -182,33 +181,66 @@ class PedidoAdmin(ModelAdmin):
     def numero_orden(self, obj):
         return format_html('<span class="font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">{}</span>', obj.codigo_pedido)
         
-  
+    def editar(self, obj):
+        # Verificar si el usuario tiene permiso de cambio (change)
+        if self.has_change_permission(self.request, obj=obj):
+            return format_html(
+                '<a class="btn" href="/admin/sistema/pedido/{}/change/">'
+                '<span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span>'
+                '</a>', 
+                obj.id
+            )
+        return ""  # Retornar vacío si no tiene permiso
+    
+    editar.short_description = ''  # Esto oculta el encabezado de la columna
+    editar.allow_tags = True  # Permite renderizar HTML en la columna
+    
+    def eliminar(self, obj):
+        # Verificar si el usuario tiene permiso de eliminación (delete)
+        if self.has_delete_permission(self.request, obj=obj):
+            return format_html(
+                '<a class="btn" href="/admin/sistema/pedido/{}/delete/">'
+                '<span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span>'
+                '</a>', 
+                obj.id
+            )
+        return ""  # Retornar vacío si no tiene permiso
+    
+    eliminar.short_description = ''  # Esto oculta el encabezado de la columna
+    eliminar.allow_tags = True
 
-    list_display        = ('cliente', 'numero_orden', 'cantidad_yardas', 'slump', 'estado', 'mas_detalles', 'entregas_realizadas', 'despachos',)
-    list_filter         = []
+    def get_queryset(self, request):
+        # Guardar request para usarlo en los métodos
+        self.request = request
+        return super().get_queryset(request)
+
+    list_display        = ('cliente', 'numero_orden', 'cantidad_yardas', 'slump', 'estado', 'mas_detalles', 'entregas_realizadas', 'despachos', 'editar', 'eliminar')
+    list_filter         = ()
     search_fields       = ('cliente__tipo_documento','cliente__numero', 'codigo_pedido',)
-    list_display_links  = None
-    actions             = None #[desactivar, reactivar]
-    list_select_related = True
+    # list_display_links  = None
+    # actions             = None #[desactivar, reactivar]
+    # list_select_related = True
     readonly_fields    = ('cliente', 'codigo_pedido' , 'fecha_entrega', 'hora_entrega', 'direccion_entrega')
     
-     # Configuración de los formularios de edición y creación
-    # fieldsets = [
-    #     (
-    #         ("Asignación"), 
-    #         {
-    #             "classes":  ["tab"],
-    #             "fields":   ['agregados', 'slump', 'estado_pedido'],
-    #         }
-    #     ),
-    #     (
-    #         ("Precios"), 
-    #         {
-    #             "classes":  ["tab"],
-    #             "fields":   ['cantidad_yardas','precio_yarda','precio_total'],
-    #         }
-    #     ),
-    # ]
+    
+    
+    # fieldsets = (
+    #     ('Información del Pedido', {
+    #         'fields': ('codigo_pedido', 'cliente', 'cantidad_yardas', 'direccion_entrega')
+    #     }),
+    #     ('Detalles de Entrega', {
+    #         'fields': ('fecha_entrega', 'hora_entrega', 'slump', 'estado_pedido')
+    #     }),
+    #     ('Agregados', {
+    #         'fields': ('agregado',)  # Django mostrará un widget de selección múltiple
+    #     }),
+    #     ('Precios', {
+    #         'fields': ('precio_yarda', 'precio_total', 'nota')
+    #     }),
+    # )
+    
+    # Para mejorar la UI de selección de agregados
+    filter_horizontal = ('agregado',)  # Widget de doble columna
     
     # VISTA PERSONALIZADA PARA DESPACHOS
     # En tu vista (admin.py)

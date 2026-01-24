@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db                                  import models
 from django.db.models import Max, Sum
 
+from apps.auxiliares.models.agregado import Agregado
 from apps.auxiliares.models.estado_conductor import EstadoConductor
 from apps.auxiliares.models.estado_vehiculo import EstadoVehiculo
 from apps.auxiliares.models.estado_pedido       import EstadoPedido
@@ -26,7 +27,14 @@ class Pedido(models.Model):
     estado_pedido           = models.ForeignKey(EstadoPedido,           on_delete = models.PROTECT, db_column="estado_pedido",     related_name = 'estado_pedido',    to_field = 'nombre',     default = 'pendiente'      )
     
     slump                   = models.IntegerField('Slump', blank = True, null = True)
-    agregados               = models.CharField('Agregados',     max_length = 100, blank = True, null = True                                                                  )
+    agregado = models.ManyToManyField(
+        Agregado, 
+        verbose_name='Agregados',
+        blank=True,
+        null=True,
+        # Opcional: si quieres personalizar el nombre de la tabla intermedia
+        # through='AgregadoPedido'
+    )
     precio_yarda            = models.DecimalField('Precio Yarda',       max_digits = 10, decimal_places = 2,   blank = True, null = True                    )
     precio_total            = models.DecimalField('Precio Total',       max_digits = 10, decimal_places = 2,   blank = True, null = True                    )
     

@@ -214,6 +214,14 @@ class CustomerAdmin(admin.ModelAdmin):
         )
     editar.short_description = ""
     
+    def eliminar(self, obj):
+        return format_html(
+            '<a title="Eliminar" class="btn btn-link" href="/admin/cuenta/customer/{}/delete/">'
+            '<span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span>'
+            '</a>', 
+            obj.id
+        )
+    eliminar.short_description = ""
     
     # También puedes restringir la creación para que solo se puedan crear clientes
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -222,7 +230,7 @@ class CustomerAdmin(admin.ModelAdmin):
     add_form = CustomUserCreationForm
     change_password_form = AdminPasswordChangeForm
     
-    list_display = ('nombre_apellido', 'tipo_documento', 'numero', 'email', 'is_staff', 'editar')
+    list_display = ('nombre_apellido', 'tipo_documento', 'numero', 'email', 'is_staff', 'editar', 'eliminar')
     list_filter = ()
     search_fields = ('username', 'nombre_apellido', 'tipo_documento', 'numero', 'email',)
     ordering = ('username',)
