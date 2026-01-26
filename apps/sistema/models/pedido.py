@@ -1,80 +1,299 @@
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.db import models
+from django.db.models import Max, Sum, Q
+from django.db import transaction
 
-
-from django.db                                  import models
-from django.db.models import Max, Sum
-
-from apps.auxiliares.models.agregado import Agregado
+from apps.administracion.models.agregado import Agregado
+from apps.administracion.models.rango_pedido import RangoPedido
 from apps.auxiliares.models.estado_conductor import EstadoConductor
 from apps.auxiliares.models.estado_vehiculo import EstadoVehiculo
-from apps.auxiliares.models.estado_pedido       import EstadoPedido
-from apps.sistema.models.conductor              import Conductor
-from apps.sistema.models.vehiculo               import Vehiculo
-from apps.cuenta.models                         import User
+from apps.auxiliares.models.estado_pedido import EstadoPedido
+from apps.sistema.models.conductor import Conductor
+from apps.sistema.models.vehiculo import Vehiculo
+from apps.cuenta.models import User
 
 
 class Pedido(models.Model):
-    codigo_pedido           = models.CharField('Número de Orden',     max_length = 20,                          unique=True                                          )
-    cliente                 = models.ForeignKey(User,                  on_delete=models.PROTECT,                                      )
-    cantidad_yardas         = models.DecimalField('Cantidad de Yardas',       max_digits = 10, decimal_places = 1,                      )
-    direccion_entrega       = models.CharField('Dirección Entrega',     max_length = 255,                                                                   )
+    codigo_pedido = models.CharField('Número de Orden', max_length=20, unique=True)
+    cliente = models.ForeignKey(User, on_delete=models.PROTECT)
+    cantidad_yardas = models.DecimalField('Cantidad de Yardas', max_digits=10, decimal_places=1)
+    direccion_entrega = models.CharField('Dirección Entrega', max_length=255)
     
-    fecha_entrega           = models.DateField('Fecha Entrega',                                                                                             )
-    hora_entrega            = models.TimeField('Hora Entrega',                                                                                              )
-    nota                    = models.TextField('Nota',                                                  blank = True,   null = True                  )
-    estado_pedido           = models.ForeignKey(EstadoPedido,           on_delete = models.PROTECT, db_column="estado_pedido",     related_name = 'estado_pedido',    to_field = 'nombre',     default = 'pendiente'      )
+    fecha_entrega = models.DateField('Fecha Entrega')
+    hora_entrega = models.TimeField('Hora Entrega')
+    nota = models.TextField('Nota', blank=True, null=True)
+    estado_pedido = models.ForeignKey(EstadoPedido, on_delete=models.PROTECT, 
+                                      db_column="estado_pedido", 
+                                      related_name='estado_pedido', 
+                                      to_field='nombre', 
+                                      default='pendiente')
     
-    slump                   = models.IntegerField('Slump', blank = True, null = True)
+    slump = models.IntegerField('Slump', blank=True, null=True)
+    
+    # Campos para determinar el precio
+    rango_pedido = models.ForeignKey(RangoPedido, on_delete=models.PROTECT, null=True, blank=True)
+    rango_pedido_codigo = models.IntegerField('Código de Rango Pedido', null=True, blank=True)
+    precio_por_yarda_aplicado = models.DecimalField('Precio por Yarda Aplicado', 
+                                                    max_digits=10, decimal_places=2, 
+                                                    null=True, blank=True)
+    precio_por_yarda_aplicado_codigo = models.IntegerField('Código de Precio por Yarda Aplicado', 
+                                                           null=True, blank=True)
+    
+    # CORREGIDO: Agregar 'through' para usar el modelo intermedio
     agregado = models.ManyToManyField(
         Agregado, 
-        verbose_name='Agregados',
+        verbose_name='Agregados', 
         blank=True,
-        null=True,
-        # Opcional: si quieres personalizar el nombre de la tabla intermedia
-        # through='AgregadoPedido'
+        through='AgregadoPedido',  # ¡IMPORTANTE! Usar el modelo intermedio
     )
-    precio_yarda            = models.DecimalField('Precio Yarda',       max_digits = 10, decimal_places = 2,   blank = True, null = True                    )
-    precio_total            = models.DecimalField('Precio Total',       max_digits = 10, decimal_places = 2,   blank = True, null = True                    )
     
-    is_delete               = models.BooleanField('Es Eliminado',          default = False                            )
-    fecha_creacion          = models.DateTimeField('Fecha Creación',        auto_now_add = True                                                             )
-    fecha_modificacion      = models.DateTimeField('Fecha Modificación',    auto_now = True                                                                 )
+    # Campos calculados
+    subtotal_yardas = models.DecimalField('Subtotal Yardas', max_digits=10, decimal_places=2, 
+                                          null=True, blank=True, default=0)
+    subtotal_agregados = models.DecimalField('Subtotal Agregados', max_digits=10, decimal_places=2, 
+                                             null=True, blank=True, default=0)
+    precio_total = models.DecimalField('Precio Total', max_digits=10, decimal_places=2, 
+                                       null=True, blank=True, default=0)
+    
+    is_delete = models.BooleanField('Es Eliminado', default=False)
+    fecha_creacion = models.DateTimeField('Fecha Creación', auto_now_add=True)
+    fecha_modificacion = models.DateTimeField('Fecha Modificación', auto_now=True)
     
     class Meta:
-        managed             = True
-        db_table            = 'sistema\".\"pedido'
-        verbose_name        = 'Pedido'
+        managed = True
+        db_table = 'sistema\".\"pedido'
+        verbose_name = 'Pedido'
         verbose_name_plural = 'Pedidos'
         
     def __str__(self):
         return f'{self.codigo_pedido}'
     
-    def save(self, *args, **kwargs):
-        # Generar código automático solo si es un nuevo registro
-        if not self.codigo_pedido:
-            # Obtener el último número de pedido
-            ultimo_pedido = Pedido.objects.aggregate(max_numero=Max('codigo_pedido'))
+    def clean(self):
+        """Validaciones antes de guardar"""
+        super().clean()
+        
+        if self.cantidad_yardas and self.cantidad_yardas <= 0:
+            raise ValidationError({'cantidad_yardas': 'La cantidad de yardas debe ser mayor que 0.'})
+    
+    def determinar_rango(self):
+        """Determina automáticamente el rango según la cantidad de yardas"""
+        from apps.administracion.models.rango_pedido import RangoPedido
+        
+        try:
+            rangos = RangoPedido.objects.filter(is_delete=False).order_by('yarda_minima')
+            
+            for rango in rangos:
+                if rango.contiene_yardas(self.cantidad_yardas):
+                    return rango
+            
+        except Exception as e:
+            print(f"Error al determinar rango: {e}")
+        
+        return None
+    
+    def obtener_precio_activo_por_rango(self, rango):
+        """Obtiene el precio activo actual para un rango específico"""
+        from apps.administracion.models.precio_rango_pedido import PrecioRangoPedido
+        
+        if not rango:
+            return None
+        
+        try:
+            fecha_referencia = self.fecha_creacion.date() if self.pk else timezone.now().date()
+            
+            precio = PrecioRangoPedido.objects.filter(
+                rango_pedido=rango,
+                fecha_inicio__lte=fecha_referencia,
+                is_delete=False
+            ).filter(
+                Q(fecha_fin__gte=fecha_referencia) | Q(fecha_fin__isnull=True)
+            ).order_by('-fecha_inicio').first()
+            
+            return precio
+            
+        except Exception as e:
+            print(f"Error obteniendo precio activo: {e}")
+            return None
+    
+    def asignar_codigos_desde_rango(self, rango):
+        """Asigna automáticamente los códigos basados en el rango seleccionado"""
+        if not rango:
+            return
+        
+        self.rango_pedido_codigo = rango.codigo
+        
+        precio_activo = self.obtener_precio_activo_por_rango(rango)
+        
+        if precio_activo:
+            self.precio_por_yarda_aplicado = precio_activo.precio_por_yarda
+            self.precio_por_yarda_aplicado_codigo = precio_activo.codigo
+        else:
+            self.precio_por_yarda_aplicado = 0
+            self.precio_por_yarda_aplicado_codigo = None
+
+    def calcular_subtotal_agregados(self):
+        """Calcula el subtotal de todos los agregados del pedido"""
+        from apps.administracion.models.agregado_precio import AgregadoPrecio
+        
+        total = 0
+        try:
+            fecha_referencia = self.fecha_creacion.date() if self.pk else timezone.now().date()
+            
+            # CORREGIDO: Usar el related_name del modelo intermedio
+            # 'agregados_pedido' es el related_name definido en AgregadoPedido
+            agregados_relacionados = self.agregados_pedido.all()
+            
+            print(f"DEBUG: Encontrados {agregados_relacionados.count()} AgregadoPedido para pedido {self.id}")
+            
+            for agregado_rel in agregados_relacionados:
+                agregado_obj = agregado_rel.agregado
+                
+                print(f"DEBUG: Procesando agregado: {agregado_obj.nombre} (ID: {agregado_obj.id})")
+                
+                precio = AgregadoPrecio.objects.filter(
+                    agregado=agregado_obj,
+                    fecha_inicio__lte=fecha_referencia,
+                    is_active=True
+                ).filter(
+                    Q(fecha_fin__gte=fecha_referencia) | Q(fecha_fin__isnull=True)
+                ).first()
+                
+                if precio:
+                    print(f"DEBUG: Precio encontrado: ${precio.precio} para {agregado_obj.nombre}")
+                    total += precio.precio
+                else:
+                    print(f"DEBUG: ¡NO se encontró precio para {agregado_obj.nombre}!")
+                    print(f"DEBUG: Buscando cualquier precio en AgregadoPrecio...")
+                    
+                    # Para diagnóstico
+                    todos_precios = AgregadoPrecio.objects.filter(agregado=agregado_obj)
+                    print(f"DEBUG: Total de precios en BD para {agregado_obj.nombre}: {todos_precios.count()}")
+                    
+                    for p in todos_precios:
+                        print(f"DEBUG:   - ${p.precio} (activo: {p.is_active}) desde {p.fecha_inicio}")
+        
+        except Exception as e:
+            print(f"Error al calcular subtotal de agregados: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        print(f"DEBUG: Subtotal agregados total: ${total}")
+        return total
+    
+    def calcular_precios(self):
+        """Calcula todos los precios del pedido"""
+        try:
+            print(f"\n=== INICIO calcular_precios para pedido {self.id if self.id else 'NUEVO'} ===")
+            
+            if not self.rango_pedido:
+                nuevo_rango = self.determinar_rango()
+                if nuevo_rango:
+                    self.rango_pedido = nuevo_rango
+                    print(f"Rango asignado automáticamente: {nuevo_rango.nombre}")
+            
+            if self.rango_pedido:
+                print(f"Asignando códigos desde rango: {self.rango_pedido.nombre}")
+                self.asignar_codigos_desde_rango(self.rango_pedido)
+            
+            if self.precio_por_yarda_aplicado and self.cantidad_yardas:
+                self.subtotal_yardas = self.cantidad_yardas * self.precio_por_yarda_aplicado
+                print(f"Subtotal yardas: {self.cantidad_yardas} x ${self.precio_por_yarda_aplicado} = ${self.subtotal_yardas}")
+            else:
+                self.subtotal_yardas = 0
+                print(f"Subtotal yardas: $0 (sin precio por yarda)")
+            
+            self.subtotal_agregados = self.calcular_subtotal_agregados()
+            print(f"Subtotal agregados: ${self.subtotal_agregados}")
+            
+            self.precio_total = self.subtotal_yardas + self.subtotal_agregados
+            print(f"Precio total: ${self.subtotal_yardas} + ${self.subtotal_agregados} = ${self.precio_total}")
+            
+            print(f"=== FIN calcular_precios ===\n")
+                
+        except Exception as e:
+            print(f"Error al calcular precios: {e}")
+            import traceback
+            traceback.print_exc()
+            self.subtotal_yardas = 0
+            self.subtotal_agregados = 0
+            self.precio_total = 0
+    
+    def generar_codigo_pedido(self):
+        """Genera el código de pedido automáticamente"""
+        try:
+            ultimo_pedido = Pedido.objects.filter(
+                codigo_pedido__regex=r'^N\d+$'
+            ).aggregate(max_numero=Max('codigo_pedido'))
+            
             ultimo_numero = 0
             
             if ultimo_pedido['max_numero']:
-                # Extraer solo los números del último código
                 try:
-                    ultimo_numero = int(ultimo_pedido['max_numero'].replace('P', ''))
+                    ultimo_numero = int(ultimo_pedido['max_numero'][1:])
                 except (ValueError, AttributeError):
-                    ultimo_numero = 999  # Si hay error, empezar desde 1000
+                    ultimo_numero = 0
             
-            # Si no hay pedidos, empezar desde 1000
-            if ultimo_numero < 1000:
-                nuevo_numero = 1000
-            else:
-                nuevo_numero = ultimo_numero + 1
+            nuevo_numero = max(1000, ultimo_numero + 1)
+            return f'N{nuevo_numero}'
             
-            self.codigo_pedido = f'N{nuevo_numero}'
-        
-        super().save(*args, **kwargs)
+        except Exception as e:
+            print(f"Error generando código de pedido: {e}")
+            from django.utils.crypto import get_random_string
+            return f'N{get_random_string(6, "0123456789")}'
     
+    def save(self, *args, **kwargs):
+        """Guardar el pedido con manejo adecuado de transacciones"""
+        # Generar código automático solo si es un nuevo registro
+        if not self.codigo_pedido:
+            self.codigo_pedido = self.generar_codigo_pedido()
+        
+        # Si es un nuevo pedido, calcular precios antes de guardar
+        if not self.pk:
+            self.calcular_precios()
+        
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            
+            update_fields = kwargs.get('update_fields', [])
+            if 'cantidad_yardas' in update_fields or 'rango_pedido' in update_fields:
+                self.calcular_precios()
+                campos_actualizar = [
+                    'rango_pedido', 'rango_pedido_codigo',
+                    'precio_por_yarda_aplicado', 'precio_por_yarda_aplicado_codigo',
+                    'subtotal_yardas', 'subtotal_agregados', 'precio_total',
+                    'fecha_modificacion'
+                ]
+                campos_actualizar = [campo for campo in campos_actualizar 
+                                    if campo in update_fields or campo == 'fecha_modificacion']
+                super().save(update_fields=campos_actualizar)
+        
+    def get_info_precio(self):
+        """Retorna información detallada del cálculo de precios"""
+        return {
+            'cantidad_yardas': float(self.cantidad_yardas) if self.cantidad_yardas else 0,
+            'rango_aplicado': str(self.rango_pedido) if self.rango_pedido else 'No asignado',
+            'rango_codigo': self.rango_pedido_codigo or 'No asignado',
+            'precio_por_yarda': float(self.precio_por_yarda_aplicado) if self.precio_por_yarda_aplicado else 0,
+            'precio_por_yarda_codigo': self.precio_por_yarda_aplicado_codigo or 'No asignado',
+            'subtotal_yardas': float(self.subtotal_yardas) if self.subtotal_yardas else 0,
+            'subtotal_agregados': float(self.subtotal_agregados) if self.subtotal_agregados else 0,
+            'total': float(self.precio_total) if self.precio_total else 0,
+        }
+    
+    def actualizar_codigos_desde_rango(self):
+        """Método para forzar la actualización de códigos basados en el rango actual"""
+        if self.rango_pedido:
+            self.asignar_codigos_desde_rango(self.rango_pedido)
+            self.save(update_fields=[
+                'rango_pedido_codigo',
+                'precio_por_yarda_aplicado',
+                'precio_por_yarda_aplicado_codigo',
+                'fecha_modificacion'
+            ])
+        return self.get_info_precio()
+
 class Entrega(models.Model):
     ESTADOS_ENTREGA = [
         ('programado', 'Programado'),

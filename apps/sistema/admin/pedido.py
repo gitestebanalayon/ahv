@@ -60,6 +60,15 @@ class PedidoAdmin(ModelAdmin):
     #     return format_html('<a class="btn" href="/admin/sistema/pedido/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
 
     def mas_detalles(self, obj):
+        # Crear lista de agregados como badges HTML
+        agregados_badges = ""
+        for agregado in obj.agregado.all():
+            agregados_badges += f'''
+            <span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-base-100">
+                {agregado.nombre}
+            </span>
+            '''
+        
         return format_html(
             '''
        
@@ -72,6 +81,8 @@ class PedidoAdmin(ModelAdmin):
                     data-fecha-entrega="{}"
                     data-hora-entrega="{}"
                     data-direccion="{}"
+                    data-agregados='{}'
+                    data-agregados-badges='{}'
                     data-slump="{}"
                     data-estado="{}"
                     data-nota="{}"
@@ -89,7 +100,8 @@ class PedidoAdmin(ModelAdmin):
             obj.fecha_entrega,
             obj.hora_entrega,
             obj.direccion_entrega,
-            # obj.agregados or "",
+            ", ".join([a.nombre for a in obj.agregado.all()]),  # Texto simple
+            agregados_badges,  # HTML de badges
             obj.slump or "",
             obj.estado_pedido,
             obj.nota or "",
@@ -220,27 +232,24 @@ class PedidoAdmin(ModelAdmin):
     # list_display_links  = None
     # actions             = None #[desactivar, reactivar]
     # list_select_related = True
-    readonly_fields    = ('cliente', 'codigo_pedido' , 'fecha_entrega', 'hora_entrega', 'direccion_entrega')
+    readonly_fields    = ('codigo_pedido',)
     
     
     
-    # fieldsets = (
-    #     ('Información del Pedido', {
-    #         'fields': ('codigo_pedido', 'cliente', 'cantidad_yardas', 'direccion_entrega')
-    #     }),
-    #     ('Detalles de Entrega', {
-    #         'fields': ('fecha_entrega', 'hora_entrega', 'slump', 'estado_pedido')
-    #     }),
-    #     ('Agregados', {
-    #         'fields': ('agregado',)  # Django mostrará un widget de selección múltiple
-    #     }),
-    #     ('Precios', {
-    #         'fields': ('precio_yarda', 'precio_total', 'nota')
-    #     }),
-    # )
+    fieldsets = [
+        (
+            ("Pedido"), 
+            {
+                "classes":  ["tab"],
+                "fields":   ['cliente', 'cantidad_yardas', 'slump', 'fecha_entrega', 'hora_entrega', 'direccion_entrega', 'nota'],
+            }
+        ),
+
+    ]
+    
     
     # Para mejorar la UI de selección de agregados
-    filter_horizontal = ('agregado',)  # Widget de doble columna
+    # filter_horizontal = ('agregado',)  # Widget de doble columna
     
     # VISTA PERSONALIZADA PARA DESPACHOS
     # En tu vista (admin.py)
@@ -280,6 +289,86 @@ class PedidoAdmin(ModelAdmin):
         
         return render(request, 'admin/sistema/pedido/entrega.html', context)
     
+    def save_model(self, request, obj, form, change):
+        """
+        Sobrescribir el guardado - Versión corregida
+        """
+        from apps.administracion.models.rango_pedido import RangoPedido
+        from apps.administracion.models.precio_rango_pedido import PrecioRangoPedido
+        from apps.administracion.models.agregado_precio import AgregadoPrecio
+        from django.utils import timezone
+        from django.db.models import Q
+        
+        # PASO 1: Guardar el objeto principal (esto crea o actualiza el pedido)
+        super().save_model(request, obj, form, change)
+        
+        # PASO 2: Determinar rango automáticamente
+        if obj.cantidad_yardas:
+            rangos = RangoPedido.objects.filter(is_delete=False).order_by('yarda_minima')
+            
+            rango_asignado = None
+            for rango in rangos:
+                if rango.contiene_yardas(float(obj.cantidad_yardas)):
+                    rango_asignado = rango
+                    break
+            
+            if not rango_asignado and rangos.exists():
+                # Si no encuentra, usar el último rango si la cantidad es mayor o igual
+                ultimo_rango = rangos.last()
+                if float(obj.cantidad_yardas) >= float(ultimo_rango.yarda_minima):
+                    rango_asignado = ultimo_rango
+            
+            if rango_asignado:
+                obj.rango_pedido = rango_asignado
+                obj.rango_pedido_codigo = rango_asignado.codigo
+        
+        # PASO 3: Obtener precio para el rango
+        precio_activo = None
+        if obj.rango_pedido:
+            precio_activo = PrecioRangoPedido.objects.filter(
+                rango_pedido=obj.rango_pedido,
+                fecha_inicio__lte=timezone.now().date(),
+                is_delete=False
+            ).filter(
+                Q(fecha_fin__gte=timezone.now().date()) | Q(fecha_fin__isnull=True)
+            ).order_by('-fecha_inicio').first()
+            
+            if precio_activo:
+                obj.precio_por_yarda_aplicado = precio_activo.precio_por_yarda
+                obj.precio_por_yarda_aplicado_codigo = precio_activo.codigo
+            else:
+                # Limpiar si no hay precio activo
+                obj.precio_por_yarda_aplicado = None
+                obj.precio_por_yarda_aplicado_codigo = None
+        
+        # PASO 4: Calcular subtotal de yardas
+        if obj.cantidad_yardas and precio_activo:
+            obj.subtotal_yardas = obj.cantidad_yardas * precio_activo.precio_por_yarda
+        else:
+            obj.subtotal_yardas = 0
+        
+        # PASO 5: Calcular subtotal de agregados
+        total_agregados = 0
+        for agregado_obj in obj.agregado.all():
+            precio = AgregadoPrecio.objects.filter(
+                agregado=agregado_obj,
+                fecha_inicio__lte=timezone.now().date(),
+                is_active=True
+            ).filter(
+                Q(fecha_fin__gte=timezone.now().date()) | Q(fecha_fin__isnull=True)
+            ).first()
+            
+            if precio:
+                total_agregados += precio.precio
+        
+        obj.subtotal_agregados = total_agregados
+        
+        # PASO 6: Calcular precio total
+        obj.precio_total = (obj.subtotal_yardas or 0) + (obj.subtotal_agregados or 0)
+        
+        # PASO 7: Guardar todos los cambios
+        obj.save()
+        
     class Media:
         js = (
             'admin/js/pedido_modal.js',
