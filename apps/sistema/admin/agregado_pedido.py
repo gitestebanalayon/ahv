@@ -33,11 +33,14 @@ class AgregadoPedidoAdmin(ModelAdmin):
     def eliminar(self, obj):
         return format_html('<a class="btn" href="/admin/sistema/agregadopedido/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
 
-    def estado_conductor(self, obj):
-        return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">{}</span>', obj.estado_conductor_nombre)
-        
+    def agregado_nombre(self, obj):
+        return obj.agregado.nombre if obj.agregado else '-'
+    
+    def numero_orden(self, obj):
+        return obj.pedido.codigo_pedido if obj.pedido else '-'
+    
   
-    list_display        = ('agregado_id' , 'pedido_id', 'editar','eliminar')
+    list_display        = ('agregado_nombre' , 'numero_orden', 'editar','eliminar')
     list_filter         = []
     search_fields       = []
     list_display_links  = None
