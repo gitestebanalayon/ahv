@@ -26,6 +26,7 @@ from unfold.contrib.filters.admin   import (
     MultipleDropdownFilter
 )
 
+from apps.cuenta.models import User
 from apps.sistema.models.pedido import Pedido, Entrega
 from apps.sistema.models.conductor import Conductor
 from apps.sistema.models.vehiculo import Vehiculo
@@ -41,6 +42,14 @@ class PedidoAdmin(ModelAdmin):
     filter_horizontal = ('agregado',)
      # Cambia esto para mostrar 10 registros por página
     list_per_page = 10
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """Filtrar campo ForeignKey cliente"""
+        if db_field.name == "cliente":
+            # Filtrar solo usuarios clientes activos
+            kwargs["queryset"] = User.objects.filter(is_customer=True, is_active=True).order_by('username')
+        
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
     
     # Sobrescribir get_urls para agregar nuestra vista personalizada
     def get_urls(self):
@@ -195,32 +204,68 @@ class PedidoAdmin(ModelAdmin):
         return format_html('<span class="font-semibold text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300">{}</span>', obj.codigo_pedido)
         
     def editar(self, obj):
-        # Verificar si el usuario tiene permiso de cambio (change)
-        if self.has_change_permission(self.request, obj=obj):
+        # Verificar si el usuario tiene permiso de cambio (change) Y si no está completado
+        if self.has_change_permission(self.request, obj=obj) and str(obj.estado_pedido).lower() != 'completado':
             return format_html(
-                '<a class="btn" href="/admin/sistema/pedido/{}/change/">'
+                '<a class="btn" href="/admin/sistema/pedido/{}/change/" title="Editar pedido">'
                 '<span class="material-symbols-outlined text-primary-600 dark:text-primary-200">edit</span>'
                 '</a>', 
                 obj.id
             )
+        # Si está completado, mostrar icono bloqueado
+        elif str(obj.estado_pedido).lower() == 'completado':
+            return format_html(
+                '<span class="btn" title="Pedido completado - No editable">'
+                '<span class="material-symbols-outlined text-gray-400 dark:text-gray-600">lock</span>'
+                '</span>'
+            )
         return ""  # Retornar vacío si no tiene permiso
-    
+
     editar.short_description = ''  # Esto oculta el encabezado de la columna
     editar.allow_tags = True  # Permite renderizar HTML en la columna
-    
+
     def eliminar(self, obj):
-        # Verificar si el usuario tiene permiso de eliminación (delete)
-        if self.has_delete_permission(self.request, obj=obj):
+        # Verificar si el usuario tiene permiso de eliminación (delete) Y si no está completado
+        if self.has_delete_permission(self.request, obj=obj) and str(obj.estado_pedido).lower() != 'completado':
             return format_html(
-                '<a class="btn" href="/admin/sistema/pedido/{}/delete/">'
+                '<a class="btn" href="/admin/sistema/pedido/{}/delete/" title="Eliminar pedido">'
                 '<span class="material-symbols-outlined text-red-600 dark:text-red-200">delete</span>'
                 '</a>', 
                 obj.id
             )
+        # Si está completado, mostrar icono bloqueado
+        elif str(obj.estado_pedido).lower() == 'completado':
+            return format_html(
+                '<span class="btn" title="Pedido completado - No eliminable">'
+                '<span class="material-symbols-outlined text-gray-400 dark:text-gray-600">lock</span>'
+                '</span>'
+            )
         return ""  # Retornar vacío si no tiene permiso
-    
+
     eliminar.short_description = ''  # Esto oculta el encabezado de la columna
     eliminar.allow_tags = True
+    
+    def has_change_permission(self, request, obj=None):
+        """
+        Sobrescribir para no permitir editar pedidos completados o cancelados
+        """
+        if obj is not None:
+            estado_actual = str(obj.estado_pedido).lower().strip()
+            if estado_actual in ['completado', 'cancelado']:
+                return False
+        
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        """
+        Sobrescribir para no permitir eliminar pedidos en ciertos estados
+        """
+        if obj is not None:
+            estado_actual = str(obj.estado_pedido).lower().strip()
+            if estado_actual in ['completado', 'cancelado', 'en viaje', 'programado']:
+                return False
+        
+        return super().has_delete_permission(request, obj)
 
     def get_queryset(self, request):
         # Guardar request para usarlo en los métodos
@@ -264,13 +309,6 @@ class PedidoAdmin(ModelAdmin):
     ]
     
     
-    # Para mejorar la UI de selección de agregados
-    # filter_horizontal = ('agregado',)  # Widget de doble columna
-    
-    # VISTA PERSONALIZADA PARA DESPACHOS
-    # En tu vista (admin.py)
-    # En apps/sistema/admin/pedido.py - En la clase PedidoAdmin
-
     def entrega_view(self, request, pedido_id):
         pedido = get_object_or_404(Pedido, id=pedido_id)
         
