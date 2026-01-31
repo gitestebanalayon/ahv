@@ -20,7 +20,7 @@ class AgregadoPrecioAdmin(ModelAdmin):
         if obj.is_active:
             return format_html(
                 '<a class="btn" href="{}">'
-                '<span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span>'
+                '<span class="material-symbols-outlined text-primary-600 dark:text-primary-200">edit</span>'
                 '</a>', 
                 reverse('admin:administracion_agregadoprecio_change', args=[obj.id])
             )
@@ -35,7 +35,7 @@ class AgregadoPrecioAdmin(ModelAdmin):
         """Mostrar botón de eliminar siempre"""
         return format_html(
             '<a class="btn" href="{}">'
-            '<span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span>'
+            '<span class="material-symbols-outlined text-red-600 dark:text-red-200">delete</span>'
             '</a>', 
             reverse('admin:administracion_agregadoprecio_delete', args=[obj.id])
         )

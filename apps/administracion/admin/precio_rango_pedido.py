@@ -30,7 +30,7 @@ class PrecioRangoPedidoAdmin(ModelAdmin):
         if self.has_change_permission(self.request, obj=obj):
             return format_html(
                 '<a class="btn" href="/admin/administracion/preciorangopedido/{}/change/">'
-                '<span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span>'
+                '<span class="material-symbols-outlined text-primary-600 dark:text-primary-600">edit</span>'
                 '</a>', 
                 obj.id
             )
@@ -43,7 +43,7 @@ class PrecioRangoPedidoAdmin(ModelAdmin):
         if self.has_delete_permission(self.request, obj=obj):
             return format_html(
                 '<a class="btn" href="/admin/administracion/preciorangopedido/{}/delete/">'
-                '<span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span>'
+                '<span class="material-symbols-outlined text-red-600 dark:text-red-600">delete</span>'
                 '</a>', 
                 obj.id
             )

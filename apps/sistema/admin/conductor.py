@@ -37,7 +37,7 @@ class ConductorAdmin(ModelAdmin):
     list_per_page = 10
 
     def editar(self, obj):
-        return format_html('<a class="btn" href="/admin/sistema/conductor/{}/change/"><span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span></a>', obj.id)
+        return format_html('<a class="btn" href="/admin/sistema/conductor/{}/change/"><span class="material-symbols-outlined text-primary-600 dark:text-primary-600">edit</span></a>', obj.id)
     def eliminar(self, obj):
         return format_html('<a class="btn" href="/admin/sistema/conductor/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
 

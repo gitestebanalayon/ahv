@@ -46,7 +46,8 @@ class Pedido(models.Model):
         Agregado, 
         verbose_name='Agregados', 
         blank=True,
-        through='AgregadoPedido',  # ¡IMPORTANTE! Usar el modelo intermedio
+        # through='AgregadoPedido',  # COMENTAR ESTO
+        related_name='pedidos'
     )
     
     # Campos calculados
@@ -141,19 +142,17 @@ class Pedido(models.Model):
         try:
             fecha_referencia = self.fecha_creacion.date() if self.pk else timezone.now().date()
             
-            # CORREGIDO: Usar el related_name del modelo intermedio
-            # 'agregados_pedido' es el related_name definido en AgregadoPedido
-            agregados_relacionados = self.agregados_pedido.all()
+            # USAR LA RELACIÓN DIRECTA (sin through)
+            agregados = self.agregado.all()
             
-            print(f"DEBUG: Encontrados {agregados_relacionados.count()} AgregadoPedido para pedido {self.id}")
+            print(f"DEBUG: Encontrados {agregados.count()} agregados para pedido {self.id}")
+            print(f"DEBUG: Cantidad de yardas: {self.cantidad_yardas}")
             
-            for agregado_rel in agregados_relacionados:
-                agregado_obj = agregado_rel.agregado
-                
-                print(f"DEBUG: Procesando agregado: {agregado_obj.nombre} (ID: {agregado_obj.id})")
+            for agregado in agregados:
+                print(f"DEBUG: Procesando agregado: {agregado.nombre} (ID: {agregado.id})")
                 
                 precio = AgregadoPrecio.objects.filter(
-                    agregado=agregado_obj,
+                    agregado=agregado,
                     fecha_inicio__lte=fecha_referencia,
                     is_active=True
                 ).filter(
@@ -161,19 +160,13 @@ class Pedido(models.Model):
                 ).first()
                 
                 if precio:
-                    print(f"DEBUG: Precio encontrado: ${precio.precio} para {agregado_obj.nombre}")
-                    total += precio.precio
+                    # ¡IMPORTANTE! Multiplicar por cantidad de yardas
+                    subtotal_agregado = self.cantidad_yardas * precio.precio
+                    print(f"DEBUG: {agregado.nombre}: {self.cantidad_yardas} yardas x ${precio.precio}/yarda = ${subtotal_agregado}")
+                    total += subtotal_agregado
                 else:
-                    print(f"DEBUG: ¡NO se encontró precio para {agregado_obj.nombre}!")
-                    print(f"DEBUG: Buscando cualquier precio en AgregadoPrecio...")
-                    
-                    # Para diagnóstico
-                    todos_precios = AgregadoPrecio.objects.filter(agregado=agregado_obj)
-                    print(f"DEBUG: Total de precios en BD para {agregado_obj.nombre}: {todos_precios.count()}")
-                    
-                    for p in todos_precios:
-                        print(f"DEBUG:   - ${p.precio} (activo: {p.is_active}) desde {p.fecha_inicio}")
-        
+                    print(f"DEBUG: ¡NO se encontró precio activo para {agregado.nombre}!")
+            
         except Exception as e:
             print(f"Error al calcular subtotal de agregados: {e}")
             import traceback
@@ -183,42 +176,62 @@ class Pedido(models.Model):
         return total
     
     def calcular_precios(self):
-        """Calcula todos los precios del pedido"""
+        """Calcula todos los precios del pedido - Versión Mejorada"""
         try:
-            print(f"\n=== INICIO calcular_precios para pedido {self.id if self.id else 'NUEVO'} ===")
+            print(f"\n{'='*50}")
+            print(f"INICIO calcular_precios para pedido {self.id if self.id else 'NUEVO'}")
+            print(f"{'='*50}")
             
-            if not self.rango_pedido:
+            # 1. Determinar rango si no tiene
+            if not self.rango_pedido and self.cantidad_yardas:
                 nuevo_rango = self.determinar_rango()
                 if nuevo_rango:
                     self.rango_pedido = nuevo_rango
-                    print(f"Rango asignado automáticamente: {nuevo_rango.nombre}")
+                    self.rango_pedido_codigo = nuevo_rango.codigo
+                    print(f"✅ Rango asignado automáticamente: {nuevo_rango.nombre}")
             
-            if self.rango_pedido:
-                print(f"Asignando códigos desde rango: {self.rango_pedido.nombre}")
-                self.asignar_codigos_desde_rango(self.rango_pedido)
+            # 2. Obtener precio por yarda si hay rango
+            if self.rango_pedido and not self.precio_por_yarda_aplicado:
+                precio_activo = self.obtener_precio_activo_por_rango(self.rango_pedido)
+                if precio_activo:
+                    self.precio_por_yarda_aplicado = precio_activo.precio_por_yarda
+                    self.precio_por_yarda_aplicado_codigo = precio_activo.codigo
+                    print(f"✅ Precio por yarda asignado: ${self.precio_por_yarda_aplicado}/yarda")
             
-            if self.precio_por_yarda_aplicado and self.cantidad_yardas:
+            # 3. Calcular subtotal de yardas
+            if self.cantidad_yardas and self.precio_por_yarda_aplicado:
                 self.subtotal_yardas = self.cantidad_yardas * self.precio_por_yarda_aplicado
-                print(f"Subtotal yardas: {self.cantidad_yardas} x ${self.precio_por_yarda_aplicado} = ${self.subtotal_yardas}")
+                print(f"📦 Subtotal yardas:")
+                print(f"   {self.cantidad_yardas} yardas x ${self.precio_por_yarda_aplicado}/yarda = ${self.subtotal_yardas}")
             else:
                 self.subtotal_yardas = 0
-                print(f"Subtotal yardas: $0 (sin precio por yarda)")
+                print(f"📦 Subtotal yardas: $0 (sin precio por yarda)")
             
+            # 4. Calcular subtotal de agregados (multiplicando por yardas)
             self.subtotal_agregados = self.calcular_subtotal_agregados()
-            print(f"Subtotal agregados: ${self.subtotal_agregados}")
+            print(f"🧱 Subtotal agregados: ${self.subtotal_agregados}")
             
-            self.precio_total = self.subtotal_yardas + self.subtotal_agregados
-            print(f"Precio total: ${self.subtotal_yardas} + ${self.subtotal_agregados} = ${self.precio_total}")
+            # 5. Calcular precio total
+            self.precio_total = (self.subtotal_yardas or 0) + (self.subtotal_agregados or 0)
+            print(f"💰 Precio total:")
+            print(f"   ${self.subtotal_yardas} (yardas) + ${self.subtotal_agregados} (agregados) = ${self.precio_total}")
             
-            print(f"=== FIN calcular_precios ===\n")
-                
+            print(f"{'='*50}")
+            print(f"FIN calcular_precios")
+            print(f"{'='*50}\n")
+            
+            return True
+            
         except Exception as e:
-            print(f"Error al calcular precios: {e}")
+            print(f"❌ Error al calcular precios: {e}")
             import traceback
             traceback.print_exc()
+            
             self.subtotal_yardas = 0
             self.subtotal_agregados = 0
             self.precio_total = 0
+            
+            return False
     
     def generar_codigo_pedido(self):
         """Genera el código de pedido automáticamente"""
@@ -244,30 +257,16 @@ class Pedido(models.Model):
             return f'N{get_random_string(6, "0123456789")}'
     
     def save(self, *args, **kwargs):
-        """Guardar el pedido con manejo adecuado de transacciones"""
+        """Guardar el pedido"""
         # Generar código automático solo si es un nuevo registro
         if not self.codigo_pedido:
             self.codigo_pedido = self.generar_codigo_pedido()
         
-        # Si es un nuevo pedido, calcular precios antes de guardar
-        if not self.pk:
-            self.calcular_precios()
+        # Guardar primero para obtener ID
+        super().save(*args, **kwargs)
         
-        with transaction.atomic():
-            super().save(*args, **kwargs)
-            
-            update_fields = kwargs.get('update_fields', [])
-            if 'cantidad_yardas' in update_fields or 'rango_pedido' in update_fields:
-                self.calcular_precios()
-                campos_actualizar = [
-                    'rango_pedido', 'rango_pedido_codigo',
-                    'precio_por_yarda_aplicado', 'precio_por_yarda_aplicado_codigo',
-                    'subtotal_yardas', 'subtotal_agregados', 'precio_total',
-                    'fecha_modificacion'
-                ]
-                campos_actualizar = [campo for campo in campos_actualizar 
-                                    if campo in update_fields or campo == 'fecha_modificacion']
-                super().save(update_fields=campos_actualizar)
+        # NOTA: Los cálculos se harán desde el admin en save_related
+        # para asegurar que los ManyToMany ya están guardados
         
     def get_info_precio(self):
         """Retorna información detallada del cálculo de precios"""

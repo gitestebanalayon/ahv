@@ -5,7 +5,7 @@
 {{ block.super }}
 <style>
     .stats-card {
-        background: linear-gradient(135deg, #1447e6 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1164ad 0%, #0d487c 100%);
         color: white;
         border-radius: 10px;
         padding: 20px;
@@ -39,7 +39,7 @@
     }
 
     .badge-warning {
-        background-color: #f59e0b;
+        background-color: #f08227;
         color: white;
     }
 
@@ -49,7 +49,7 @@
     }
 
     .badge-info {
-        background-color: #3b82f6;
+        background-color: #1164ad;
         color: white;
     }
 
@@ -333,7 +333,7 @@
                                             <!-- Código de Entrega -->
                                             <td class="field-codigo_entrega align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
                                                 data-label="Código Entrega">
-                                                <span class="font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                                <span class="font-semibold text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300">
                                                     {{ entrega.codigo_entrega }}
                                                 </span>
                                             </td>
@@ -342,7 +342,7 @@
                                             <td class="field-secuencia align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:font-semibold before:text-font-important-light before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800"
                                                 data-label="Secuencia">
                                                 <span
-                                                    class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-800 font-bold">
+                                                    class="inline-flex items-center justify-center w-8 h-8 rounded-full text-primary-800 font-bold">
                                                     {{ entrega.secuencia }}
                                                 </span>
                                             </td>
@@ -505,7 +505,7 @@
                                                             href="{% url 'admin:marcar_completado' entrega.id %}?pedido_id={{ pedido.id }}"
                                                             title="Completar Entrega"
                                                             onclick="return confirm('¿Está seguro de marcar esta entrega como completada?')">
-                                                            <span class="material-symbols-outlined text-blue-700 dark:text-blue-200 text-lg">check_circle</span>
+                                                            <span class="material-symbols-outlined text-primary-700 dark:text-primary-200 text-lg">check_circle</span>
                                                         </a>
                                                         
                                                         <!-- Botón Cancelar -->
@@ -533,7 +533,7 @@
                                                         <a class="btn p-1.5 rounded transition-colors"
                                                             href="{% url 'admin:sistema_entrega_change' entrega.id %}?pedido_id={{ pedido.id }}"
                                                             title="Editar entrega">
-                                                            <span class="material-symbols-outlined text-blue-700 dark:text-blue-200 text-lg">edit</span>
+                                                            <span class="material-symbols-outlined text-primary-700 dark:text-primary-200 text-lg">edit</span>
                                                         </a>
                                                     {% endif %}
                                                     
@@ -568,7 +568,7 @@
                                                     <a class="btn"
                                                         href="{% url 'admin:sistema_entrega_change' entrega.id %}?pedido_id={{ pedido.id }}"
                                                         title="Editar"><span
-                                                            class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span></a>
+                                                            class="material-symbols-outlined text-primary-700 dark:text-primary-200">edit</span></a>
                                                 </div>
                                             </td>
 

@@ -38,6 +38,7 @@ class EntregaForm(forms.ModelForm):
 
 @admin.register(Pedido)
 class PedidoAdmin(ModelAdmin):
+    filter_horizontal = ('agregado',)
      # Cambia esto para mostrar 10 registros por página
     list_per_page = 10
     
@@ -55,7 +56,7 @@ class PedidoAdmin(ModelAdmin):
   
 
     # def editar(self, obj):
-    #     return format_html('<a class="btn" href="/admin/sistema/pedido/{}/change/"><span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span></a>', obj.id)
+    #     return format_html('<a class="btn" href="/admin/sistema/pedido/{}/change/"><span class="material-symbols-outlined text-primary-700 dark:text-primary-200">edit</span></a>', obj.id)
     # def eliminar(self, obj):
     #     return format_html('<a class="btn" href="/admin/sistema/pedido/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
 
@@ -64,7 +65,7 @@ class PedidoAdmin(ModelAdmin):
         agregados_badges = ""
         for agregado in obj.agregado.all():
             agregados_badges += f'''
-            <span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-base-100">
+            <span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-base-100">
                 {agregado.nombre}
             </span>
             '''
@@ -191,14 +192,14 @@ class PedidoAdmin(ModelAdmin):
     entregas_realizadas.short_description = "Entregas"    
         
     def numero_orden(self, obj):
-        return format_html('<span class="font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">{}</span>', obj.codigo_pedido)
+        return format_html('<span class="font-semibold text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300">{}</span>', obj.codigo_pedido)
         
     def editar(self, obj):
         # Verificar si el usuario tiene permiso de cambio (change)
         if self.has_change_permission(self.request, obj=obj):
             return format_html(
                 '<a class="btn" href="/admin/sistema/pedido/{}/change/">'
-                '<span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span>'
+                '<span class="material-symbols-outlined text-primary-600 dark:text-primary-200">edit</span>'
                 '</a>', 
                 obj.id
             )
@@ -212,7 +213,7 @@ class PedidoAdmin(ModelAdmin):
         if self.has_delete_permission(self.request, obj=obj):
             return format_html(
                 '<a class="btn" href="/admin/sistema/pedido/{}/delete/">'
-                '<span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span>'
+                '<span class="material-symbols-outlined text-red-600 dark:text-red-200">delete</span>'
                 '</a>', 
                 obj.id
             )
@@ -225,6 +226,21 @@ class PedidoAdmin(ModelAdmin):
         # Guardar request para usarlo en los métodos
         self.request = request
         return super().get_queryset(request)
+
+    # AÑADE ESTE MÉTODO PARA MOSTRAR LOS AGREGADOS
+    def mostrar_agregados(self, obj):
+        """Método personalizado para mostrar agregados en list_display"""
+        agregados = obj.agregado.all()
+        if agregados:
+            # Mostrar como lista compacta
+            nombres = [agregado.nombre for agregado in agregados[:3]]
+            display = ", ".join(nombres)
+            if agregados.count() > 3:
+                display += f" (+{agregados.count() - 3})"
+            return display
+        return "-"
+    
+    mostrar_agregados.short_description = "Agregados"
 
     list_display        = ('cliente', 'numero_orden', 'cantidad_yardas', 'slump', 'estado', 'mas_detalles', 'entregas_realizadas', 'despachos', 'editar', 'eliminar')
     list_filter         = ()
@@ -241,7 +257,7 @@ class PedidoAdmin(ModelAdmin):
             ("Pedido"), 
             {
                 "classes":  ["tab"],
-                "fields":   ['cliente', 'cantidad_yardas', 'slump', 'fecha_entrega', 'hora_entrega', 'direccion_entrega', 'nota'],
+                "fields":   ['cliente', 'cantidad_yardas', 'slump', 'agregado', 'fecha_entrega', 'hora_entrega', 'direccion_entrega', 'nota'],
             }
         ),
 
@@ -289,86 +305,89 @@ class PedidoAdmin(ModelAdmin):
         
         return render(request, 'admin/sistema/pedido/entrega.html', context)
     
+    def save_form(self, request, form, change):
+        """
+        Sobrescribir save_form para manejar correctamente los ManyToManyField
+        """
+        # Primero guardamos el formulario normalmente
+        obj = super().save_form(request, form, change)
+        
+        # Si es un nuevo pedido, calcular código
+        if not obj.codigo_pedido:
+            obj.codigo_pedido = obj.generar_codigo_pedido()
+        
+        return obj
+    
     def save_model(self, request, obj, form, change):
         """
-        Sobrescribir el guardado - Versión corregida
+        Sobrescribir save_model - Versión CORREGIDA
         """
-        from apps.administracion.models.rango_pedido import RangoPedido
-        from apps.administracion.models.precio_rango_pedido import PrecioRangoPedido
-        from apps.administracion.models.agregado_precio import AgregadoPrecio
-        from django.utils import timezone
-        from django.db.models import Q
+        print(f"=== DEBUG save_model ===")
+        print(f"Pedido ID antes: {obj.id}")
+        print(f"Es cambio: {change}")
         
-        # PASO 1: Guardar el objeto principal (esto crea o actualiza el pedido)
+        # Guardar el objeto principal PRIMERO
         super().save_model(request, obj, form, change)
         
-        # PASO 2: Determinar rango automáticamente
-        if obj.cantidad_yardas:
-            rangos = RangoPedido.objects.filter(is_delete=False).order_by('yarda_minima')
-            
-            rango_asignado = None
-            for rango in rangos:
-                if rango.contiene_yardas(float(obj.cantidad_yardas)):
-                    rango_asignado = rango
-                    break
-            
-            if not rango_asignado and rangos.exists():
-                # Si no encuentra, usar el último rango si la cantidad es mayor o igual
-                ultimo_rango = rangos.last()
-                if float(obj.cantidad_yardas) >= float(ultimo_rango.yarda_minima):
-                    rango_asignado = ultimo_rango
-            
-            if rango_asignado:
-                obj.rango_pedido = rango_asignado
-                obj.rango_pedido_codigo = rango_asignado.codigo
+        print(f"Pedido ID después: {obj.id}")
         
-        # PASO 3: Obtener precio para el rango
-        precio_activo = None
-        if obj.rango_pedido:
-            precio_activo = PrecioRangoPedido.objects.filter(
-                rango_pedido=obj.rango_pedido,
-                fecha_inicio__lte=timezone.now().date(),
-                is_delete=False
-            ).filter(
-                Q(fecha_fin__gte=timezone.now().date()) | Q(fecha_fin__isnull=True)
-            ).order_by('-fecha_inicio').first()
-            
-            if precio_activo:
-                obj.precio_por_yarda_aplicado = precio_activo.precio_por_yarda
-                obj.precio_por_yarda_aplicado_codigo = precio_activo.codigo
-            else:
-                # Limpiar si no hay precio activo
-                obj.precio_por_yarda_aplicado = None
-                obj.precio_por_yarda_aplicado_codigo = None
+        # NO calcular precios aquí todavía - se hará en save_related
         
-        # PASO 4: Calcular subtotal de yardas
-        if obj.cantidad_yardas and precio_activo:
-            obj.subtotal_yardas = obj.cantidad_yardas * precio_activo.precio_por_yarda
-        else:
-            obj.subtotal_yardas = 0
+    def save_related(self, request, form, formsets, change):
+        """
+        Este método se ejecuta DESPUÉS de que se han guardado las relaciones ManyToMany
+        Aquí es donde debemos calcular los precios
+        """
+        print(f"=== DEBUG save_related ===")
+        print(f"Calculando precios después de guardar relaciones...")
         
-        # PASO 5: Calcular subtotal de agregados
-        total_agregados = 0
-        for agregado_obj in obj.agregado.all():
-            precio = AgregadoPrecio.objects.filter(
-                agregado=agregado_obj,
-                fecha_inicio__lte=timezone.now().date(),
-                is_active=True
-            ).filter(
-                Q(fecha_fin__gte=timezone.now().date()) | Q(fecha_fin__isnull=True)
-            ).first()
-            
-            if precio:
-                total_agregados += precio.precio
+        # Primero llamar al método padre
+        super().save_related(request, form, formsets, change)
         
-        obj.subtotal_agregados = total_agregados
+        # Obtener el objeto del formulario
+        obj = form.instance
         
-        # PASO 6: Calcular precio total
-        obj.precio_total = (obj.subtotal_yardas or 0) + (obj.subtotal_agregados or 0)
+        # Refrescar para obtener las relaciones ManyToMany
+        obj.refresh_from_db()
         
-        # PASO 7: Guardar todos los cambios
+        print(f"Agregados después de guardar: {list(obj.agregado.all())}")
+        
+        # Ahora sí calcular los precios
+        obj.calcular_precios()
+        
+        # Guardar los campos calculados
+        update_fields = [
+            'subtotal_yardas', 'subtotal_agregados', 'precio_total', 
+            'fecha_modificacion', 'rango_pedido', 'rango_pedido_codigo',
+            'precio_por_yarda_aplicado', 'precio_por_yarda_aplicado_codigo'
+        ]
+        
+        # Filtrar solo campos que existen
+        campos_existentes = [campo for campo in update_fields if hasattr(obj, campo)]
+        if campos_existentes:
+            obj.save(update_fields=campos_existentes)
+            print(f"Campos calculados guardados: {campos_existentes}")
+       
+    def response_add(self, request, obj, post_url_continue=None):
+        """
+        Redirigir después de agregar
+        """
+        # Recalcular por si acaso
+        obj.calcular_precios()
         obj.save()
         
+        return super().response_add(request, obj, post_url_continue)
+    
+    def response_change(self, request, obj):
+        """
+        Redirigir después de editar
+        """
+        # Recalcular por si acaso
+        obj.calcular_precios()
+        obj.save()
+        
+        return super().response_change(request, obj)   
+     
     class Media:
         js = (
             'admin/js/pedido_modal.js',
@@ -388,9 +407,9 @@ class EntregaAdmin(ModelAdmin):
     list_per_page = 10
     
     def editar(self, obj):
-        return format_html('<a class="btn" href="/admin/sistema/entrega/{}/change/"><span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span></a>', obj.id)
+        return format_html('<a class="btn" href="/admin/sistema/entrega/{}/change/"><span class="material-symbols-outlined text-primary-600 dark:text-primary-200">edit</span></a>', obj.id)
     def eliminar(self, obj):
-        return format_html('<a class="btn" href="/admin/sistema/entrega/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
+        return format_html('<a class="btn" href="/admin/sistema/entrega/{}/delete/"><span class="material-symbols-outlined text-red-600 dark:text-red-200">delete</span></a>', obj.id)
 
     def acciones(self, obj):
         html = ''
