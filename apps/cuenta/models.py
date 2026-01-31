@@ -66,7 +66,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ['tipo_documento','numero','nombre_apellido','email']
 
     def __str__(self):
-        return f"{self.tipo_documento}-{self.numero}"
+        return f"{self.nombre_apellido}"
     
 
 class Customer(User):
