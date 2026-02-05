@@ -45,6 +45,7 @@ LOCAL_APPS = [
 ]
 
 THIRD_APPS = [
+    'channels',
     'corsheaders',
     'ninja_extra',
     'ninja_jwt',
@@ -57,6 +58,23 @@ THIRD_APPS = [
 
 INSTALLED_APPS = BASE_APPS + LOCAL_APPS + THIRD_APPS
 
+ASGI_APPLICATION = 'ahv.configuracion.asgi.application'
+
+
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [('127.0.0.1', 6379)],
+#         },
+#     },
+# }
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    },
+}
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

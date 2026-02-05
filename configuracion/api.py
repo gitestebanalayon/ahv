@@ -24,9 +24,63 @@ api = NinjaExtraAPI(
 def handle_validation_error_generic(request, exc):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
+    # Obtener los errores - FIJATE: exc.errors podría ser una función
     errors = getattr(exc, 'errors', None)
-    if errors:
+    
+    # IMPORTANTE: Si errors es una función, llámala
+    if callable(errors):
+        try:
+            errors = errors()
+        except Exception:
+            errors = None
+    
+    # Si errors es None, intenta obtener error_dict
+    if not errors and hasattr(exc, 'error_dict'):
+        errors = exc.error_dict
+    
+    # Si aún no hay errors, usa un mensaje genérico
+    if not errors:
+        return Response(
+            {
+                "statusCode": 422,
+                "message": "Error de validación",
+                "path": request.path, 
+                "timestamp": timestamp
+            },
+            status=422
+        )
+    
+    # Si errors es un diccionario (de Django), conviértelo a lista
+    if isinstance(errors, dict):
+        errors_list = []
+        for field, field_errors in errors.items():
+            if isinstance(field_errors, list):
+                for error in field_errors:
+                    errors_list.append({
+                        'loc': [field],
+                        'msg': str(error),
+                        'type': 'validation_error'
+                    })
+        errors = errors_list
+    
+    # Ahora errors debería ser una lista
+    if isinstance(errors, list) and len(errors) > 0:
         first_error = errors[0]
+        
+        # Verificar que first_error es un diccionario
+        if not isinstance(first_error, dict):
+            error_message = str(first_error)
+            return Response(
+                {
+                    "statusCode": 422,
+                    "message": error_message,
+                    "path": request.path,
+                    "timestamp": timestamp
+                },
+                status=422
+            )
+        
+        # Extraer datos del error
         error_message = first_error.get('msg', 'Error de validación')
         error_loc = first_error.get('loc', [])
         
@@ -57,6 +111,7 @@ def handle_validation_error_generic(request, exc):
             status=422
         )
     
+    # Caso por defecto
     return Response(
         {
             "statusCode": 422,

@@ -2,6 +2,38 @@ from typing import Optional, List
 from datetime import date, time, datetime
 from ninja import Schema
 from decimal import Decimal
+from django.utils.timezone import make_naive
+import pytz
+
+class CrearPedidoSchema(Schema):
+    cliente_id: int
+    cantidad_yardas: Decimal
+    direccion_entrega: str
+    fecha_entrega: date
+    hora_entrega: str  # Cambiado a string
+    nota: Optional[str] = None
+    slump: Optional[int] = None
+    agregados: Optional[List[int]] = None
+    
+    @staticmethod
+    def parse_time(time_str: str) -> time:
+        """
+        Convierte string de tiempo a time object naive
+        """
+        try:
+            # Intentar parsear como datetime con timezone
+            dt = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
+            # Convertir a naive (sin timezone) para MySQL
+            if dt.tzinfo:
+                dt = make_naive(dt, pytz.UTC)
+            return dt.time()
+        except (ValueError, AttributeError):
+            # Si falla, intentar parsear como time directo
+            try:
+                return time.fromisoformat(time_str.split('Z')[0])
+            except ValueError:
+                # Si es formato simple HH:MM:SS
+                return time.fromisoformat(time_str)
 
 class SchemaListarEntrega(Schema):
     id: int

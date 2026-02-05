@@ -1,8 +1,9 @@
-from typing import Any
+from typing import Any, Optional, Dict
 from datetime import datetime
 from ninja import Schema
 
 class ErrorSchema(Schema):
+    response: Optional[Dict[str, Any]] = None  # O algo así
     statusCode: int
     message: str
     path: str
