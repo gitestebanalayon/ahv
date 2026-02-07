@@ -17,7 +17,9 @@ class PrecioRangoPedido(models.Model):
     fecha_actualizacion = models.DateTimeField('Fecha Actualización', auto_now=True)
 
     class Meta:
-        db_table = 'precio_rango_pedido'
+        managed = True
+        # db_table = 'precio_rango_pedido'
+        db_table = 'administracion\".\"precio_rango_pedido'
         verbose_name = 'Precio por Rango de Pedido'
         verbose_name_plural = 'Precios por Rango de Pedido'
         ordering = ['-fecha_inicio']

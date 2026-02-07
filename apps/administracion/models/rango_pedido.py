@@ -14,7 +14,9 @@ class RangoPedido(models.Model):
     fecha_actualizacion = models.DateTimeField('Fecha Actualización', auto_now=True)
 
     class Meta:
-        db_table = 'rango_pedido'
+        managed = True
+        # db_table = 'rango_pedido'
+        db_table = 'administracion\".\"rango_pedido'
         verbose_name = 'Rango de Pedido'
         verbose_name_plural = 'Rangos de Pedido'
 

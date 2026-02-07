@@ -9,7 +9,9 @@ class Agregado(models.Model):
     fecha_actualizacion = models.DateTimeField('Fecha Actualización', auto_now=True)
 
     class Meta:
-        db_table = 'agregado'
+        managed = True
+        # db_table = 'agregado'
+        db_table = 'administracion\".\"agregado'
         verbose_name = 'Agregado'
         verbose_name_plural = 'Agregados'
 

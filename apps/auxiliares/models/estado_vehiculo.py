@@ -9,8 +9,8 @@ class EstadoVehiculo(models.Model):
 
     class Meta:
         managed             = True
-        # db_table            = 'auxiliares\".\"estado_vehiculo'
-        db_table            = 'estado_vehiculo'
+        # db_table            = 'estado_vehiculo'
+        db_table            = 'auxiliares\".\"estado_vehiculo'
         verbose_name        = 'Estado Vehículo'
         verbose_name_plural = 'Estados Vehículos'
 
