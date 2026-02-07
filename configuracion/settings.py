@@ -13,6 +13,17 @@ SECRET_KEY          = config('SECRET_KEY')
 DEBUG               = config('DEBUG')
 ALLOWED_HOSTS       = config('ALLOWED_HOSTS', cast=Csv())
 
+# ============================================
+# DETECCIÓN AUTOMÁTICA DE ENTORNO
+# ============================================
+
+# Opción 1: Detectar por nombre de dominio (para PythonAnywhere)
+IN_PYTHONANYWHERE = 'PYTHONANYWHERE_DOMAIN' in os.environ
+IS_DEVELOPMENT = DEBUG  # Si DEBUG=True, es desarrollo
+
+print(f"🔍 Entorno detectado:")
+print(f"   DEBUG: {DEBUG}")
+print(f"   PythonAnywhere: {IN_PYTHONANYWHERE}")
 
 # Application definition
 
@@ -70,11 +81,84 @@ ASGI_APPLICATION = 'ahv.configuracion.asgi.application'
 #     },
 # }
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    },
-}
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer"
+#     },
+# }
+
+
+import ssl
+from urllib.parse import urlparse
+
+REDIS_URL = config('REDIS_URL', default='redis://localhost:6379')
+
+# Parsear URL para ver si necesita SSL (Redis Cloud suele usar SSL)
+parsed = urlparse(REDIS_URL)
+use_ssl = parsed.scheme == 'rediss'
+
+# DECISIÓN: ¿Usar Redis Cloud o memoria local?
+if IS_DEVELOPMENT and not IN_PYTHONANYWHERE:
+    # MODO DESARROLLO LOCAL (Windows/Linux/Mac)
+    print("⚡ MODO DESARROLLO LOCAL: Usando memoria para Channels")
+    
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer"
+        },
+    }
+    
+    # Pero Redis Cloud SÍ para cache (opcional, puedes comentar si quieres)
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "IGNORE_EXCEPTIONS": True,
+            }
+        }
+    }
+    
+else:
+    # MODO PRODUCCIÓN (PythonAnywhere) o Desarrollo con Redis Cloud
+    print("🚀 MODO PRODUCCIÓN/Redis Cloud: Usando Redis Cloud remoto")
+    
+    if use_ssl:
+        # Redis Cloud CON SSL
+        CHANNEL_LAYERS = {
+            'default': {
+                'BACKEND': 'channels_redis.core.RedisChannelLayer',
+                'CONFIG': {
+                    "hosts": [{
+                        'address': REDIS_URL,
+                        'ssl': True,
+                        'ssl_cert_reqs': ssl.CERT_NONE,
+                    }],
+                },
+            },
+        }
+    else:
+        # Redis Cloud SIN SSL
+        CHANNEL_LAYERS = {
+            'default': {
+                'BACKEND': 'channels_redis.core.RedisChannelLayer',
+                'CONFIG': {
+                    "hosts": [REDIS_URL],
+                },
+            },
+        }
+    
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "IGNORE_EXCEPTIONS": True,
+            }
+        }
+    }
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -244,27 +328,63 @@ SWAGGER_SETTINGS =  {
                     }
 
 # Configuracion de CELERY
-REDIS_URL                       =   os.getenv("BROKER_URL", "redis://localhost:6379")
-CELERY_BROKER_URL               =   REDIS_URL
-CELERY_BROKER_TRANSPORT_OPTIONS =   {
-                                        "visibility_timeout": 3600,  # 1 hour
-                                    }
-CELERY_ACCEPT_CONTENT           =   ["application/json"]
-CELERY_TASK_SERIALIZER          =   "json"
-CELERY_RESULT_SERIALIZER        =   "json"
-CELERY_TIMEZONE                 =   TIME_ZONE
+# REDIS_URL                       =   os.getenv("BROKER_URL", "redis://localhost:6379")
+# 4. Celery también usar Redis Cloud
 
+
+if IS_DEVELOPMENT and not IN_PYTHONANYWHERE:
+    # Desarrollo local: Celery en memoria o Redis Cloud
+    CELERY_BROKER_URL = REDIS_URL  # Puedes usar Redis Cloud igual
+    CELERY_RESULT_BACKEND = REDIS_URL
+else:
+    # Producción: Redis Cloud
+    CELERY_BROKER_URL = REDIS_URL
+    CELERY_RESULT_BACKEND = REDIS_URL
+
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    "visibility_timeout": 3600,
+}
+CELERY_ACCEPT_CONTENT = ["application/json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+
+
+
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+#         "LOCATION": "unique-snowflake",
+#     }
+# }
 
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "unique-snowflake",
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": 50,
+                "retry_on_timeout": True,
+            },
+            "IGNORE_EXCEPTIONS": True,
+        }
     }
 }
 
-# Optional: This is to ensure Django sessions are stored in Redis
-SESSION_ENGINE      = 'django.contrib.sessions.backends.cache'
-SESSION_CACHE_ALIAS = 'default'
+
+# # Optional: This is to ensure Django sessions are stored in Redis
+# SESSION_ENGINE      = 'django.contrib.sessions.backends.cache'
+# SESSION_CACHE_ALIAS = 'default'
+
+# 3. Sesiones en Redis
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+SESSION_COOKIE_AGE = 1209600  # 2 semanas
+
+
 
 #NINJA_JWT                       = {'TOKEN_OBTAIN_PAIR_INPUT_SCHEMA': 'apps.cuenta.views.token.MyTokenObtainPairInputSchema',}
 # Configuracion del uso de JWT
