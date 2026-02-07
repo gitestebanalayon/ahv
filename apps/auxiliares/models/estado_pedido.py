@@ -9,8 +9,8 @@ class EstadoPedido(models.Model):
 
     class Meta:
         managed             = True
-        # db_table            = 'auxiliares\".\"estado_pedido'
-        db_table            = 'estado_pedido'
+        # db_table            = 'estado_pedido'
+        db_table            = 'auxiliares\".\"estado_pedido'
         verbose_name        = 'Estado Pedido'
         verbose_name_plural = 'Estados Pedidos'
 

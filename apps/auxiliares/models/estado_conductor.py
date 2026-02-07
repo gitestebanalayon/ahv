@@ -9,8 +9,8 @@ class EstadoConductor(models.Model):
 
     class Meta:
         managed             = True
-        # db_table            = 'auxiliares\".\"estado_conductor'
-        db_table            = 'estado_conductor'
+        # db_table            = 'estado_conductor'
+        db_table            = 'auxiliares\".\"estado_conductor'
         verbose_name        = 'Estado Conductor'
         verbose_name_plural = 'Estados Conductores'
 

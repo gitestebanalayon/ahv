@@ -14,7 +14,9 @@ class AgregadoPrecio(models.Model):
     fecha_actualizacion = models.DateTimeField('Fecha Actualización', auto_now=True)
 
     class Meta:
-        db_table = 'agregado_precio'
+        managed = True
+        # db_table = 'agregado_precio'
+        db_table = 'administracion\".\"agregado_precio'
         verbose_name = 'Precio de Agregado'
         verbose_name_plural = 'Precios de Agregados'
         ordering = ['-fecha_inicio']
