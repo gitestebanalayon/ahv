@@ -15,7 +15,7 @@ from apps.sistema.models import Pedido, Entrega
 from apps.cuenta.models import User
 from apps.auxiliares.models import EstadoPedido
 from apps.administracion.models import Agregado
-from apps.sistema.schemas.pedido import SchemaListarPedido
+from apps.sistema.schemas.pedido import  SchemaListarPedido
 from apps.schemas.list_response import ListResponse
 from apps.schemas.types_messages import SuccessSchema, ErrorSchema
 from apps.sistema.schemas.pedido import CrearPedidoSchema
@@ -41,39 +41,34 @@ def crear_pedido(request, data: CrearPedidoSchema):
                 print(f"✅ Cliente encontrado: {cliente.username}")
                 
                 if not cliente.is_customer:
-                    # DEVOLVER TUPLA: código de estado Y luego el schema
-                    return 400, ErrorSchema(
+                    return 400, ErrorSchema.from_exception(
                         status_code=400,
                         path=request.path,
-                        message=f"El usuario {cliente.username} no es un cliente",
-                        success=False
+                        message=f"El usuario {cliente.username} no es un cliente"
                     )
                     
                 if not cliente.is_active:
-                    return 400, ErrorSchema(
+                    return 400, ErrorSchema.from_exception(
                         status_code=400,
                         path=request.path,
-                        message=f"El cliente {cliente.username} no está activo",
-                        success=False
+                        message=f"El cliente {cliente.username} no está activo"
                     )
                     
             except User.DoesNotExist:
-                return 400, ErrorSchema(
+                return 400, ErrorSchema.from_exception(
                     status_code=400,
                     path=request.path,
-                    message=f"Cliente ID {data.cliente_id} no encontrado",
-                    success=False
+                    message=f"Cliente ID {data.cliente_id} no encontrado"
                 )
             
             # Obtener estado pendiente
             try:
                 estado_pendiente = EstadoPedido.objects.get(nombre='pendiente')
             except EstadoPedido.DoesNotExist:
-                return 400, ErrorSchema(
+                return 400, ErrorSchema.from_exception(
                     status_code=400,
                     path=request.path,
-                    message="Estado 'pendiente' no configurado en el sistema",
-                    success=False
+                    message="Estado 'pendiente' no configurado en el sistema"
                 )
             
             # Crear pedido
@@ -146,7 +141,6 @@ def crear_pedido(request, data: CrearPedidoSchema):
             except Exception as ws_error:
                 print(f"⚠️ Error WebSocket: {ws_error}")
             
-            # DEVOLVER TUPLA: 201 Y SuccessSchema
             return 201, SuccessSchema.from_success(
                 status_code=201,
                 path=request.path,
@@ -154,7 +148,8 @@ def crear_pedido(request, data: CrearPedidoSchema):
                 data={
                     "pedido_id": pedido.id,
                     "codigo_pedido": pedido.codigo_pedido,
-                    "precio_total": float(pedido.precio_total) if pedido.precio_total else 0
+                    "precio_total": float(pedido.precio_total) if pedido.precio_total else 0,
+                    "cliente": cliente.username
                 }
             )
             
