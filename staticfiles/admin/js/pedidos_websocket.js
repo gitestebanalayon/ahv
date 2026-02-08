@@ -131,19 +131,34 @@
     }
     
     function refreshTable() {
-        // Refrescar la tabla usando la API de Django Admin
-        const changelistForm = document.getElementById('changelist-form');
-        if (changelistForm) {
-            // Simular clic en el botón de búsqueda para refrescar
-            const searchButton = document.querySelector('input[name="_search"]');
-            if (searchButton) {
-                searchButton.click();
-            } else {
-                // Fallback: recargar la página
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            }
+        console.log('🔄 Refrescando tabla del admin...');
+        // Método 2: Recargar con Fetch
+        const changelist = document.querySelector('#changelist');
+        if (changelist) {
+            fetch(window.location.href)
+                .then(r => r.text())
+                .then(html => {
+                    
+                    
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html;
+                    
+                    const newChangelist = temp.querySelector('#changelist'); 
+
+                    if (newChangelist) {
+                        changelist.innerHTML = newChangelist.innerHTML;
+                        console.log('✅ Tabla refrescada');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    // Fallback a recarga completa
+                    location.reload();
+                });
+        } else {
+            // Método 3: Recargar página completa como último recurso
+            console.log('⚠️ No se pudo refrescar tabla, recargando página...');
+            setTimeout(() => location.reload(), 1500);
         }
     }
     
