@@ -1,87 +1,81 @@
-// static/admin/js/pedidos_pusher.js - VERSIÓN CORREGIDA
 class PedidosPusher {
     constructor() {
         this.pusher = null;
         this.channel = null;
-        this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 5;
+        this.isPythonAnywhere = window.location.hostname.includes('pythonanywhere.com');
         
-        console.log('🚀 Inicializando Pusher para notificaciones de pedidos');
+        console.log(`🚀 Inicializando para ${this.isPythonAnywhere ? 'PythonAnywhere' : 'Local'}`);
         this.initialize();
     }
     
     initialize() {
-        // Usar Pusher SIEMPRE, tanto en desarrollo como producción
-        this.initPusher();
-    }
-    
-    initPusher() {
-        // Cargar Pusher desde CDN si no está disponible
-        if (typeof Pusher === 'undefined') {
-            this.loadPusherLibrary();
+        if (this.isPythonAnywhere) {
+            console.log('📍 PythonAnywhere: Usando configuración especial');
+            this.initPusherPythonAnywhere();
         } else {
-            this.connectPusher();
+            console.log('📍 Local: Configuración normal');
+            this.initPusher();
         }
     }
     
-    loadPusherLibrary() {
-        console.log('📦 Cargando biblioteca Pusher...');
-        
-        const script = document.createElement('script');
-        script.src = 'https://js.pusher.com/7.2/pusher.min.js';
-        script.async = true;
-        
-        script.onload = () => {
-            console.log('✅ Pusher cargado exitosamente');
-            this.connectPusher();
-        };
-        
-        script.onerror = (error) => {
-            console.error('❌ Error cargando Pusher:', error);
-            this.showFallbackMessage();
-        };
-        
-        document.head.appendChild(script);
+    initPusherPythonAnywhere() {
+        // CONFIGURACIÓN ESPECIAL PARA PYTHONANYWHERE
+        if (typeof Pusher === 'undefined') {
+            this.loadPusherLibrary(() => this.connectPusherPythonAnywhere());
+        } else {
+            this.connectPusherPythonAnywhere();
+        }
     }
     
-    connectPusher() {
+    connectPusherPythonAnywhere() {
+        console.log('🔗 Conectando a Pusher desde PythonAnywhere...');
+        
         try {
-            // ¡IMPORTANTE! Usa TU clave de Pusher aquí
+            // ¡VERIFICA QUE ESTA KEY ES LA CORRECTA!
             const PUSHER_KEY = '7b9e25f3884835405cf2';
             
+            // Configuración ESPECIAL para PythonAnywhere
             this.pusher = new Pusher(PUSHER_KEY, {
-                cluster: 'mt1',  // ← Tu cluster
+                cluster: 'mt1',
                 forceTLS: true,
                 enabledTransports: ['ws', 'wss'],
-                authEndpoint: '/pusher/auth/',  // Opcional
+                disabledTransports: ['xhr_streaming', 'xhr_polling'], // Forzar WebSocket
+                wsHost: 'ws-mt1.pusher.com',
+                wsPort: 443,
+                wssPort: 443,
+                authEndpoint: '/pusher/auth/',
                 auth: {
                     headers: {
-                        'X-CSRFToken': this.getCookie('csrftoken')
+                        'X-CSRFToken': this.getCookie('csrftoken'),
+                        'X-Forwarded-Proto': 'https'
                     }
                 }
             });
             
-            // Manejar eventos de conexión
+            // Eventos de conexión
             this.pusher.connection.bind('connected', () => {
-                console.log('✅ Conectado a Pusher');
-                this.reconnectAttempts = 0;
+                console.log('✅✅✅ CONECTADO A PUSHER DESDE PYTHONANYWHERE');
                 this.subscribeToChannel();
             });
             
             this.pusher.connection.bind('disconnected', () => {
                 console.log('🔌 Desconectado de Pusher');
-                this.handleReconnection();
             });
             
             this.pusher.connection.bind('error', (err) => {
                 console.error('❌ Error de conexión Pusher:', err);
+                console.log('⚠️ Posibles causas:');
+                console.log('1. Firewall de PythonAnywhere bloqueando ws-mt1.pusher.com');
+                console.log('2. Credenciales incorrectas');
+                console.log('3. Cluster incorrecto (debería ser mt1)');
             });
             
-            console.log('🔗 Conectando a Pusher (cluster: mt1)...');
+            this.pusher.connection.bind('state_change', (states) => {
+                console.log('🔁 Cambio de estado:', states);
+            });
             
         } catch (error) {
             console.error('❌ Error inicializando Pusher:', error);
-            this.handleReconnection();
         }
     }
     
