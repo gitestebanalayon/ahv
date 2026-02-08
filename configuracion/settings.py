@@ -13,75 +13,8 @@ SECRET_KEY          = config('SECRET_KEY')
 DEBUG               = config('DEBUG')
 ALLOWED_HOSTS       = config('ALLOWED_HOSTS', cast=Csv())
 
-# Detectar si estamos en PythonAnywhere
-IS_PYTHONANYWHERE = 'pythonanywhere.com' in os.environ.get('SERVER_SOFTWARE', '')
 
-# Configuración ASGI/WebSocket para PythonAnywhere
-if IS_PYTHONANYWHERE:
-    # PythonAnywhere requiere estas configuraciones específicas
-    ASGI_APPLICATION = 'configuracion.asgi.application'
-    
-    # Usar Redis externo (tu RedisLabs)
-    CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {
-                "hosts": [config('REDIS_URL')],
-                "prefix": "ahv",
-            },
-        },
-    }
-    
-    # Configuraciones de seguridad para producción
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    
-    # Dominios permitidos para WebSockets
-    CSRF_TRUSTED_ORIGINS = [
-        'https://ahv.pythonanywhere.com',
-        'https://www.ahv.pythonanywhere.com',
-        'wss://ahv.pythonanywhere.com',
-    ]
-    
-    # Configuración específica para Daphne en PythonAnywhere
-    DAPHNE_PORT = 8000
-    DAPHNE_BIND_ADDRESS = '0.0.0.0'
-    
-    # Aumentar tiempo de espera para WebSockets
-    CHANNELS_WEBSOCKET_TIMEOUT = 300
-    
-    # Logging específico para WebSockets
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'handlers': {
-            'websocket': {
-                'level': 'DEBUG',
-                'class': 'logging.StreamHandler',
-            },
-        },
-        'loggers': {
-            'channels': {
-                'handlers': ['websocket'],
-                'level': 'DEBUG',
-                'propagate': False,
-            },
-            'daphne': {
-                'handlers': ['websocket'],
-                'level': 'DEBUG',
-                'propagate': False,
-            },
-        },
-    }
-else:
-    # Configuración para desarrollo local
-    CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer"
-        },
-    }
+
 # Application definition
 
 BASE_APPS = [
@@ -139,19 +72,11 @@ ASGI_APPLICATION = 'configuracion.asgi.application'
 # }
 
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [config('REDIS_URL')],  # Usa tu URL de RedisLabs
-        },
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
     },
 }
 
-if not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
 
 
 
