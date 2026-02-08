@@ -100,6 +100,22 @@ CSRF_TRUSTED_ORIGINS = [
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # SECURE_SSL_REDIRECT = True
 
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+# Configuración de seguridad para Render
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRECLOAD = True
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 465
@@ -209,15 +225,18 @@ MEDIA_ROOT          = os.path.join(BASE_DIR, 'media/')
 MEDIA_URL           = '/media/'
 
 
-CORS_ALLOW_ALL_ORIGINS          =   True # Si esta en True acepta peticiones de cualquier origen
-                                         # Si esta en True entonces `CORS_ALLOWED_ORIGINS` no tendra efecto
-CORS_ALLOW_CREDENTIALS          =   True
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "https://ahv-jcsu.onrender.com",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+CORS_ALLOW_CREDENTIALS = True
 
-'''
-CORS_ALLOWED_ORIGINS =  [
-                            "https://example.com",
-                        ]
-'''
+if DEBUG:
+    CORS_ALLOWED_ORIGINS.append("http://localhost:3000")
+    CORS_ALLOWED_ORIGINS.append("http://127.0.0.1:3000")
+
 AUTH_USER_MODEL         = 'cuenta.User'
 AUTH_PASSWORD_RESET_URL = "http://127.0.0.1:8000/<YOUR_PASSWORD_RESET_FRONTEND_URL>/"
 
