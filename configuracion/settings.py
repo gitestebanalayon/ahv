@@ -69,6 +69,54 @@ INSTALLED_APPS = BASE_APPS + LOCAL_APPS + THIRD_APPS
 
 ASGI_APPLICATION = 'configuracion.asgi.application'
 
+REDIS_URL = config('REDIS_URL', default='redis://localhost:6379')
+
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [REDIS_URL],
+            "capacity": 1500,  # default 100
+            "expiry": 10,  # default 60
+        },
+    },
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": 50,
+                "retry_on_timeout": True,
+            },
+            "IGNORE_EXCEPTIONS": True,
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+        }
+    }
+}
+
+# Configuración de sesiones en Redis (opcional pero recomendado)
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+SESSION_COOKIE_AGE = 1209600  # 2 semanas
+
+
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    "visibility_timeout": 3600,
+    "max_retries": 3,
+}
+
+# CELERY_ACCEPT_CONTENT = ["application/json"]
+# CELERY_TASK_SERIALIZER = "json"
+# CELERY_RESULT_SERIALIZER = "json"
+# CELERY_TIMEZONE = TIME_ZONE
 
 # CHANNEL_LAYERS = {
 #     'default': {
@@ -79,11 +127,11 @@ ASGI_APPLICATION = 'configuracion.asgi.application'
 #     },
 # }
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    },
-}
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer"
+#     },
+# }
 
 
 CSRF_TRUSTED_ORIGINS = [
@@ -130,6 +178,7 @@ SERVER_EMAIL = 'serviciosesteban953@gmail.com'
 
 MIDDLEWARE      =   [
                         'django.middleware.security.SecurityMiddleware',
+                        'whitenoise.middleware.WhiteNoiseMiddleware',
                         'django.contrib.sessions.middleware.SessionMiddleware',
                         # Incluida
                         "corsheaders.middleware.CorsMiddleware",
@@ -224,6 +273,8 @@ STATIC_ROOT         = os.path.join(BASE_DIR, 'static', )
 MEDIA_ROOT          = os.path.join(BASE_DIR, 'media/')
 MEDIA_URL           = '/media/'
 
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
@@ -286,19 +337,10 @@ SWAGGER_SETTINGS =  {
                     }
 
 # Configuracion de CELERY
-REDIS_URL                       =   os.getenv("BROKER_URL", "redis://localhost:6379")
+# REDIS_URL                       =   os.getenv("BROKER_URL", "redis://localhost:6379")
 # 4. Celery también usar Redis Cloud
 
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-CELERY_BROKER_TRANSPORT_OPTIONS = {
-    "visibility_timeout": 3600,
-}
-CELERY_ACCEPT_CONTENT = ["application/json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = TIME_ZONE
+
 
 
 
