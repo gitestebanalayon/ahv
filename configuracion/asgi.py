@@ -12,13 +12,12 @@ django.setup()
 # Importar después de configurar Django
 from apps.sistema.websocket.routing import websocket_urlpatterns
 
+# Para producción, validar hosts permitidos
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": AllowedHostsOriginValidator(
         AuthMiddlewareStack(
-            URLRouter(
-                websocket_urlpatterns
-            )
+            URLRouter(websocket_urlpatterns)
         )
     ),
 })

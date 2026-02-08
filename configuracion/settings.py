@@ -13,7 +13,37 @@ SECRET_KEY          = config('SECRET_KEY')
 DEBUG               = config('DEBUG')
 ALLOWED_HOSTS       = config('ALLOWED_HOSTS', cast=Csv())
 
+def is_pythonanywhere():
+    return 'PYTHONANYWHERE_DOMAIN' in os.environ or 'pythonanywhere.com' in os.environ.get('SERVER_SOFTWARE', '')
 
+
+if is_pythonanywhere() and not DEBUG:
+    # Para PythonAnywhere, necesitamos estas configuraciones
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    
+    # Asegurar que usamos el dominio correcto
+    CSRF_TRUSTED_ORIGINS = [
+        'https://ahv.pythonanywhere.com',
+        'wss://ahv.pythonanywhere.com',
+    ]
+    
+    # Configuración específica de Channels para PythonAnywhere
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [config('REDIS_URL')],
+                "prefix": "ahv",
+            },
+        },
+    }
+    
+    # Daphne necesita esta configuración en PythonAnywhere
+    DAPHNE_PORT = 8000
+    DAPHNE_BIND_ADDRESS = '0.0.0.0'
 
 # Application definition
 
@@ -59,7 +89,7 @@ THIRD_APPS = [
 
 INSTALLED_APPS = BASE_APPS + LOCAL_APPS + THIRD_APPS
 
-ASGI_APPLICATION = 'ahv.configuracion.asgi.application'
+ASGI_APPLICATION = 'configuracion.asgi.application'
 
 
 # CHANNEL_LAYERS = {
@@ -72,11 +102,19 @@ ASGI_APPLICATION = 'ahv.configuracion.asgi.application'
 # }
 
 CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [config('REDIS_URL')],  # Usa tu URL de RedisLabs
+        },
     },
 }
 
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 
 
