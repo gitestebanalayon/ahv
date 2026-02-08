@@ -11,8 +11,16 @@ import logging.config
 BASE_DIR            = Path(__file__).resolve().parent.parent
 SECRET_KEY          = config('SECRET_KEY')
 DEBUG               = config('DEBUG')
-ALLOWED_HOSTS       = config('ALLOWED_HOSTS', cast=Csv())
+# ALLOWED_HOSTS       = config('ALLOWED_HOSTS', cast=Csv())
 
+ALLOWED_HOSTS = [
+    'ahv-jcsu.onrender.com',
+    'www.ahv-jcsu.onrender.com', 
+    '.onrender.com',
+    'localhost',
+    '127.0.0.1',
+    '172.16.0.78',  # Tu IP local si la necesitas
+]
 
 
 # Application definition
@@ -78,7 +86,19 @@ CHANNEL_LAYERS = {
 }
 
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://ahv-jcsu.onrender.com',
+    'https://www.ahv-jcsu.onrender.com',
+    'https://*.onrender.com',
+    'wss://*.onrender.com',  # Para WebSockets
+]
 
+CSRF_COOKIE_DOMAIN = '.onrender.com'
+SESSION_COOKIE_DOMAIN = '.onrender.com'
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = True
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
