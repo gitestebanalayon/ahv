@@ -69,19 +69,25 @@ INSTALLED_APPS = BASE_APPS + LOCAL_APPS + THIRD_APPS
 
 ASGI_APPLICATION = 'configuracion.asgi.application'
 
-REDIS_URL = config('REDIS_URL', default='redis://localhost:6379')
+# REDIS_URL = config('REDIS_URL', default='redis://localhost:6379')
 
 
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [REDIS_URL],
-            "capacity": 1500,  # default 100
-            "expiry": 10,  # default 60
-        },
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
     },
 }
+
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [REDIS_URL],
+#             "capacity": 1500,  # default 100
+#             "expiry": 10,  # default 60
+#         },
+#     },
+# }
 
 # CACHES = {
 #     "default": {
@@ -113,8 +119,8 @@ SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 1209600  # 2 semanas
 
 
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
+# CELERY_BROKER_URL = REDIS_URL
+# CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BROKER_TRANSPORT_OPTIONS = {
     "visibility_timeout": 3600,
