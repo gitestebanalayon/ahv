@@ -270,20 +270,20 @@ CELERY_TIMEZONE = TIME_ZONE
 #     }
 # }
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
-                "max_connections": 50,
-                "retry_on_timeout": True,
-            },
-            "IGNORE_EXCEPTIONS": True,
-        }
-    }
-}
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": REDIS_URL,
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#             "CONNECTION_POOL_KWARGS": {
+#                 "max_connections": 50,
+#                 "retry_on_timeout": True,
+#             },
+#             "IGNORE_EXCEPTIONS": True,
+#         }
+#     }
+# }
 
 
 # # Optional: This is to ensure Django sessions are stored in Redis
@@ -291,9 +291,9 @@ CACHES = {
 # SESSION_CACHE_ALIAS = 'default'
 
 # 3. Sesiones en Redis
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
-SESSION_COOKIE_AGE = 1209600  # 2 semanas
+# SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# SESSION_CACHE_ALIAS = "default"
+# SESSION_COOKIE_AGE = 1209600  # 2 semanas
 
 
 
