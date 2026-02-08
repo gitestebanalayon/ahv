@@ -1,38 +1,53 @@
+"""
+WSGI config for configuracion project.
+
+It exposes the WSGI callable as a module-level variable named ``application``.
+
+For more information on this file, see
+https://docs.djangoproject.com/en/5.0/howto/deployment/wsgi/
+"""
+# WSGI para esta estructura
+# /var/www/ahvadmin_pythonanywhere_com_wsgi.py - VERSIÓN CORREGIDA
 import os
 import sys
 
-# ============================================
-# WSGI PARA PYTHONANYWHERE CON PYTHON 3.13
-# ============================================
+# RUTA AL ENTORNO VIRTUAL
+venv_path = '/home/ahvadmin/ahv/.venv'
 
-print("🚀 INICIANDO APLICACIÓN DJANGO CHANNELS", file=sys.stderr)
+# 1. Configurar el ejecutable de Python al del entorno virtual
+python_executable = os.path.join(venv_path, 'bin', 'python3.12')
+if os.path.exists(python_executable):
+    sys.executable = python_executable
 
-# Configuración
-BASE = '/home/ahv/ahv'
-CONFIG = f'{BASE}/configuracion'
-VENV_SITE = f'{BASE}/.venv/lib/python3.13/site-packages'
+# 2. Agregar el site-packages del entorno virtual al path
+site_packages = os.path.join(venv_path, 'lib', 'python3.12', 'site-packages')
+if os.path.exists(site_packages) and site_packages not in sys.path:
+    sys.path.insert(0, site_packages)
 
-# Verificar Python 3.13
-if not os.path.exists(VENV_SITE):
-    print(f"❌ ERROR: No existe {VENV_SITE}", file=sys.stderr)
-    raise RuntimeError("El entorno virtual debe ser Python 3.13")
+# 3. Agregar también la carpeta del proyecto
+project_home = '/home/ahvadmin/ahv'
+if project_home not in sys.path:
+    sys.path.insert(0, project_home)
 
-# Configurar sys.path
-sys.path = []
-sys.path.insert(0, VENV_SITE)
-sys.path.insert(0, CONFIG)
-sys.path.insert(0, BASE)
+# 4. Agregar la carpeta configuracion
+configuracion_path = '/home/ahvadmin/ahv/configuracion'
+if configuracion_path not in sys.path:
+    sys.path.insert(0, configuracion_path)
 
-# Configurar Redis Cloud
-REDIS_URL = 'redis://default:QmYUKh6wDC6FkqmlBwnuRoyIB6P12sBq@redis-14617.c258.us-east-1-4.ec2.cloud.redislabs.com:14617'
+# 5. Configurar la variable de entorno de Django
+os.environ['DJANGO_SETTINGS_MODULE'] = 'configuracion.settings'
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'configuracion.settings')
-os.environ['REDIS_URL'] = REDIS_URL
-os.environ['PYTHONANYWHERE'] = 'true'
-os.environ['WEBSOCKET_SUPPORT'] = 'true'
+# 6. (Opcional) Verificar que podemos importar decouple antes de cargar Django
+try:
+    import decouple
+    print(f"[WSGI] ✅ decouple importado desde: {decouple.__file__}", file=sys.stderr)
+except ImportError as e:
+    print(f"[WSGI] ❌ Error importando decouple: {e}", file=sys.stderr)
+    # Mostrar sys.path para debugging
+    print("[WSGI] sys.path:", file=sys.stderr)
+    for p in sys.path:
+        print(f"  {p}", file=sys.stderr)
 
-print(f"✅ Configuración completada", file=sys.stderr)
-
-# Cargar aplicación ASGI
-from configuracion.asgi import application
-print(f"✅ Aplicación ASGI cargada", file=sys.stderr)
+# 7. Cargar la aplicación Django
+from django.core.wsgi import get_wsgi_application
+application = get_wsgi_application()
