@@ -1,277 +1,177 @@
-// static/admin/js/pedidos_websocket.js
-
-(function () {
-    // Verificar más estrictamente si ya está inicializado
-    const uniqueId = 'pedidosWebSocketSimple';
-    if (window[uniqueId]) return;
-    window[uniqueId] = true;
-
-    // Verificar que estamos SOLO en la vista de cambio de pedidos
-    const path = window.location.pathname;
-    if (!path.includes('/admin/sistema/pedido') ||
-        path.includes('/add/') ||
-        path.includes('/change/') ||
-        path.includes('/delete/')) {
+// static/admin/js/pedidos_websocket_simple.js
+(function() {
+    'use strict';
+    
+    console.log('🔌 Inicializando WebSocket para pedidos...');
+    
+    // Solo ejecutar en la página de listado de pedidos del admin
+    if (!window.location.pathname.includes('/admin/sistema/pedido') ||
+        window.location.pathname.includes('/add/') ||
+        window.location.pathname.includes('/change/') ||
+        window.location.pathname.includes('/delete/')) {
         return;
     }
     
-    console.log('🚀 WebSocket para pedidos iniciado (solo en listado)');
+    // Configurar URL WebSocket - IMPORTANTE: usar wss:// para HTTPS
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    const wsUrl = `${protocol}//${host}/ws/pedidos/`;
     
-    // DETECTAR HTTPS vs HTTP - CORREGIDO
-    const isSecure = window.location.protocol === 'https:';
-    const wsProtocol = isSecure ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/pedidos/`;
+    console.log(`Conectando a: ${wsUrl}`);
     
-    console.log(`🔗 Conectando a: ${wsUrl}`);
-    console.log(`🔒 Protocolo seguro: ${isSecure} (${wsProtocol})`);
+    let socket = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 3000;
     
-    // Conectar WebSocket con manejo de errores
-    let ws;
-    
-    try {
-        ws = new WebSocket(wsUrl);
-    } catch (error) {
-        console.error('❌ Error creando WebSocket:', error);
-        return;
-    }
-
-    ws.onopen = () => {
-        console.log('✅ WebSocket conectado');
-        ws.send(JSON.stringify({ type: 'subscribe' }));
-        
-        // También pedir pedidos actuales
-        setTimeout(() => {
-            ws.send(JSON.stringify({ 
-                type: 'get_current_pedidos',
-                timestamp: new Date().toISOString()
-            }));
-        }, 1000);
-    };
-
-    ws.onmessage = (e) => {
+    function connect() {
         try {
-            const data = JSON.parse(e.data);
-            console.log('📨 Mensaje WebSocket recibido:', data.type);
+            socket = new WebSocket(wsUrl);
             
-            if (data.type === 'pedido_created') {
-                console.log(`📦 Nuevo pedido: ${data.pedido.codigo_pedido}`);
-                showNotification(data.pedido);
-                refreshAdminTable();
-            }
+            socket.onopen = function() {
+                console.log('✅ WebSocket conectado');
+                reconnectAttempts = 0;
+                
+                // Suscribirse a actualizaciones
+                socket.send(JSON.stringify({
+                    type: 'subscribe',
+                    page: 'admin'
+                }));
+            };
             
-            if (data.type === 'pedido_updated') {
-                console.log(`✏️ Pedido actualizado: ${data.pedido.codigo_pedido}`);
-                refreshAdminTable();
-            }
+            socket.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                } catch (error) {
+                    console.error('Error parseando mensaje:', error);
+                }
+            };
             
-            if (data.type === 'current_pedidos') {
-                console.log(`📊 Pedidos actuales recibidos: ${data.count || 0}`);
-                updatePedidoCount(data.count || 0);
-            }
+            socket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
             
-        } catch (err) {
-            console.error('❌ Error procesando mensaje WS:', err);
+            socket.onclose = function(event) {
+                console.log('WebSocket cerrado:', event.code, event.reason);
+                
+                // Intentar reconectar si no fue un cierre intencional
+                if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    console.log(`Reintentando conexión en ${reconnectDelay}ms (intento ${reconnectAttempts})`);
+                    setTimeout(connect, reconnectDelay);
+                }
+            };
+            
+        } catch (error) {
+            console.error('Error creando WebSocket:', error);
         }
-    };
-
-    ws.onerror = (err) => {
-        console.error('❌ WebSocket error:', err);
-        // No mostrar alerta al usuario, solo log
-    };
-
-    ws.onclose = (event) => {
-        console.log(`🔌 WebSocket cerrado: ${event.code} ${event.reason}`);
-        
-        // Solo reconectar si no fue un cierre normal
-        if (event.code !== 1000 && event.code !== 1001) {
-            console.log('🔄 Intentando reconexión en 5 segundos...');
+    }
+    
+    function handleWebSocketMessage(data) {
+        switch(data.type) {
+            case 'pedido_created':
+                console.log('Nuevo pedido:', data.pedido.codigo_pedido);
+                showNotification(data.pedido);
+                refreshTable();
+                break;
+                
+            case 'pedido_updated':
+                console.log('Pedido actualizado:', data.pedido.codigo_pedido);
+                refreshTable();
+                break;
+                
+            case 'connection_established':
+                console.log('Conexión establecida:', data.message);
+                break;
+        }
+    }
+    
+    function showNotification(pedido) {
+        // Notificación simple usando alert de Django si está disponible
+        if (typeof django !== 'undefined' && django.jQuery) {
+            const $ = django.jQuery;
+            
+            // Crear notificación estilo toast
+            const toast = $(`
+                <div class="websocket-notification" style="
+                    position: fixed;
+                    bottom: 20px;
+                    right: 20px;
+                    background: var(--primary);
+                    color: white;
+                    padding: 15px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                    z-index: 9999;
+                    max-width: 300px;
+                    animation: slideIn 0.3s ease;
+                ">
+                    <div style="font-weight: bold; margin-bottom: 5px;">
+                        <span style="margin-right: 8px;">📦</span>
+                        Nuevo Pedido
+                    </div>
+                    <div style="font-size: 14px;">
+                        <strong>${pedido.codigo_pedido}</strong><br>
+                        Cliente: ${pedido.cliente}<br>
+                        Yardas: ${pedido.cantidad_yardas}
+                    </div>
+                </div>
+            `);
+            
+            $('body').append(toast);
+            
+            // Auto-eliminar después de 5 segundos
             setTimeout(() => {
-                location.reload();
+                toast.fadeOut(300, function() {
+                    $(this).remove();
+                });
             }, 5000);
         }
-    };
-
-    function showNotification(pedido) {
-        // Usar SweetAlert2 si está disponible
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                toast: true,
-                position: 'bottom-end',
-                icon: 'success',
-                title: '¡Nuevo Pedido!',
-                html: `
-                    <div style="text-align: left;">
-                        <div style="font-weight: bold;">${pedido.codigo_pedido}</div>
-                        <div style="font-size: 0.9em; margin-top: 5px;">
-                            Cliente: ${pedido.cliente}<br>
-                            Yardas: ${pedido.cantidad_yardas}<br>
-                            Total: $${pedido.precio_total ? pedido.precio_total.toFixed(2) : '0.00'}
-                        </div>
-                    </div>
-                `,
-                showConfirmButton: false,
-                timer: 5000,
-                timerProgressBar: true,
-                background: 'var(--primary)',
-                color: 'white',
-                customClass: {
-                    popup: 'swal-toast'
-                },
-                didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', Swal.stopTimer);
-                    toast.addEventListener('mouseleave', Swal.resumeTimer);
-                }
-            });
-        } else {
-            // Fallback a notificación nativa
-            if (Notification.permission === 'granted') {
-                new Notification('Nuevo Pedido', {
-                    body: `Pedido ${pedido.codigo_pedido} creado`,
-                    icon: '/static/admin/img/icon-alert.svg'
-                });
-            } else if (Notification.permission !== 'denied') {
-                Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                        new Notification('Nuevo Pedido', {
-                            body: `Pedido ${pedido.codigo_pedido} creado`
-                        });
-                    }
-                });
-            }
-        }
     }
-
-    function refreshAdminTable() {
-        console.log('🔄 Refrescando tabla del admin...');
-        
-        // Método mejorado: Usar AJAX para refrescar solo la tabla
-        const changelist = document.querySelector('#changelist');
-        if (!changelist) {
-            console.log('⚠️ No se encontró #changelist');
-            return;
-        }
-        
-        // Mostrar indicador de carga
-        const loadingIndicator = document.createElement('div');
-        loadingIndicator.innerHTML = '<div style="text-align: center; padding: 10px; color: var(--primary-600);">🔄 Actualizando...</div>';
-        changelist.parentNode.insertBefore(loadingIndicator, changelist);
-        
-        // Obtener URL actual
-        const currentUrl = window.location.href.split('?')[0];
-        
-        // Hacer petición AJAX
-        fetch(currentUrl, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            credentials: 'same-origin'
-        })
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.text();
-        })
-        .then(html => {
-            // Parsear HTML
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newChangelist = doc.querySelector('#changelist');
-            
-            if (newChangelist) {
-                // Reemplazar contenido
-                changelist.innerHTML = newChangelist.innerHTML;
-                
-                // Agregar animación
-                changelist.classList.add('highlight-new');
+    
+    function refreshTable() {
+        // Refrescar la tabla usando la API de Django Admin
+        const changelistForm = document.getElementById('changelist-form');
+        if (changelistForm) {
+            // Simular clic en el botón de búsqueda para refrescar
+            const searchButton = document.querySelector('input[name="_search"]');
+            if (searchButton) {
+                searchButton.click();
+            } else {
+                // Fallback: recargar la página
                 setTimeout(() => {
-                    changelist.classList.remove('highlight-new');
-                }, 2000);
-                
-                console.log('✅ Tabla refrescada exitosamente');
-            }
-        })
-        .catch(error => {
-            console.error('❌ Error refrescando tabla:', error);
-            // Fallback suave: solo recargar si es necesario
-            if (window.location.search.includes('pedido')) {
-                setTimeout(() => {
-                    console.log('🔄 Recargando página completa...');
                     window.location.reload();
-                }, 3000);
+                }, 1000);
             }
-        })
-        .finally(() => {
-            // Remover indicador de carga
-            if (loadingIndicator.parentNode) {
-                loadingIndicator.parentNode.removeChild(loadingIndicator);
-            }
-        });
-    }
-
-    function updatePedidoCount(count) {
-        // Actualizar contador en la interfaz si existe
-        const counterElement = document.querySelector('.pedido-count');
-        if (counterElement) {
-            counterElement.textContent = `(${count})`;
         }
     }
-
-    // Estilos CSS dinámicos
+    
+    // Iniciar conexión cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', connect);
+    } else {
+        connect();
+    }
+    
+    // Estilos CSS
     const style = document.createElement('style');
     style.textContent = `
-        .swal-toast {
-            background: var(--primary-700) !important;
-            color: white !important;
-            border-radius: 8px !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
         
-        .highlight-new {
-            animation: highlightPulse 2s ease-in-out;
-        }
-        
-        @keyframes highlightPulse {
-            0% { background-color: rgba(var(--primary-rgb, 16, 100, 173), 0.1); }
-            50% { background-color: rgba(var(--primary-rgb, 16, 100, 173), 0.3); }
-            100% { background-color: transparent; }
-        }
-        
-        .swal-toast .swal2-title {
-            color: white !important;
-            font-weight: 600 !important;
-        }
-        
-        .swal-toast .swal2-html-container {
-            color: rgba(255,255,255,0.9) !important;
+        .websocket-notification {
+            border-left: 4px solid #4CAF50;
         }
     `;
     document.head.appendChild(style);
-
-    // Heartbeat para mantener conexión activa
-    let heartbeatInterval;
     
-    function startHeartbeat() {
-        heartbeatInterval = setInterval(() => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
-            }
-        }, 30000); // Cada 30 segundos
-    }
-    
-    // Iniciar heartbeat cuando se conecte
-    ws.addEventListener('open', startHeartbeat);
-    
-    // Limpiar al salir
-    window.addEventListener('beforeunload', () => {
-        if (heartbeatInterval) clearInterval(heartbeatInterval);
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.close(1000, 'Página cerrada');
-        }
-    });
-
-    // Verificar si estamos en HTTPS y ajustar WebSocket
-    if (isSecure) {
-        console.log('🔒 Modo HTTPS detectado, usando WSS');
-    } else {
-        console.log('⚠️  Modo HTTP detectado, usando WS (menos seguro)');
-    }
 })();

@@ -1,141 +1,177 @@
 // static/admin/js/pedidos_websocket_simple.js
-
-(function () {
-    // Verificar más estrictamente si ya está inicializado
-    const uniqueId = 'pedidosWebSocketSimple';
-    if (window[uniqueId]) return;
-    window[uniqueId] = true;
-
-    // Verificar que estamos SOLO en la vista de cambio de pedidos
-    const path = window.location.pathname;
-    if (!path.includes('/admin/sistema/pedido') ||
-        path.includes('/add/') ||
-        path.includes('/change/') ||
-        path.includes('/delete/')) {
+(function() {
+    'use strict';
+    
+    console.log('🔌 Inicializando WebSocket para pedidos...');
+    
+    // Solo ejecutar en la página de listado de pedidos del admin
+    if (!window.location.pathname.includes('/admin/sistema/pedido') ||
+        window.location.pathname.includes('/add/') ||
+        window.location.pathname.includes('/change/') ||
+        window.location.pathname.includes('/delete/')) {
         return;
     }
-
-    console.log('🚀 WebSocket para pedidos iniciado (solo en listado)');
-
-    // Conectar WebSocket
-    const ws = new WebSocket(`ws://${window.location.host}/ws/pedidos/`);
-
-    ws.onopen = () => {
-        console.log('✅ WebSocket conectado');
-        ws.send(JSON.stringify({ type: 'subscribe' }));
-    };
-
-    ws.onmessage = (e) => {
+    
+    // Configurar URL WebSocket - IMPORTANTE: usar wss:// para HTTPS
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    const wsUrl = `${protocol}//${host}/ws/pedidos/`;
+    
+    console.log(`Conectando a: ${wsUrl}`);
+    
+    let socket = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 3000;
+    
+    function connect() {
         try {
-            const data = JSON.parse(e.data);
-            if (data.type === 'pedido_created') {
-                console.log(`📦 Nuevo pedido: ${data.pedido.codigo_pedido}`);
-
-                // 1. Mostrar notificación
-                showNotification(data.pedido);
-
-                // 2. Refrescar tabla después de 1 segundo
-                setTimeout(refreshAdminTable, 1000);
-            }
-        } catch (err) {
-            console.error('Error WS:', err);
-        }
-    };
-
-    ws.onerror = (err) => console.error('WS error:', err);
-    ws.onclose = () => {
-        console.log('🔌 WS cerrado, reconectando...');
-        setTimeout(() => {
-            // Intentar reconectar
-            location.reload();
-        }, 3000);
-    };
-
-    function showNotification(pedido) {
-        // Usar SweetAlert2 si está disponible
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: `📦 ${pedido.codigo_pedido}`,
-                html: `
-                    <div style="font-size: 13px; margin-top: 5px;">
-                        <div>${pedido.cliente}</div>
-                        <div><small>${pedido.cantidad_yardas} yardas • $${pedido.precio_total ? pedido.precio_total.toFixed(2) : '0.00'}</small></div>
-                    </div>
-                `,
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true,
-                background: '#4CAF50',
-                color: 'white',
-                customClass: {
-                    popup: 'swal-toast'
+            socket = new WebSocket(wsUrl);
+            
+            socket.onopen = function() {
+                console.log('✅ WebSocket conectado');
+                reconnectAttempts = 0;
+                
+                // Suscribirse a actualizaciones
+                socket.send(JSON.stringify({
+                    type: 'subscribe',
+                    page: 'admin'
+                }));
+            };
+            
+            socket.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                } catch (error) {
+                    console.error('Error parseando mensaje:', error);
                 }
-            });
+            };
+            
+            socket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+            
+            socket.onclose = function(event) {
+                console.log('WebSocket cerrado:', event.code, event.reason);
+                
+                // Intentar reconectar si no fue un cierre intencional
+                if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    console.log(`Reintentando conexión en ${reconnectDelay}ms (intento ${reconnectAttempts})`);
+                    setTimeout(connect, reconnectDelay);
+                }
+            };
+            
+        } catch (error) {
+            console.error('Error creando WebSocket:', error);
         }
     }
-
-    function refreshAdminTable() {
-        console.log('🔄 Refrescando tabla del admin...');
-
-        // Método 1: Simular click en el botón de búsqueda (funciona con Django Admin)
-        const searchButton = document.querySelector('input[type="submit"][value="Buscar"]');
-        if (searchButton) {
-            searchButton.click();
-            console.log('✅ Click en botón de búsqueda');
-            return;
+    
+    function handleWebSocketMessage(data) {
+        switch(data.type) {
+            case 'pedido_created':
+                console.log('Nuevo pedido:', data.pedido.codigo_pedido);
+                showNotification(data.pedido);
+                refreshTable();
+                break;
+                
+            case 'pedido_updated':
+                console.log('Pedido actualizado:', data.pedido.codigo_pedido);
+                refreshTable();
+                break;
+                
+            case 'connection_established':
+                console.log('Conexión establecida:', data.message);
+                break;
         }
-
-        // Método 2: Recargar con Fetch
-        const changelist = document.querySelector('#changelist');
-        if (changelist) {
-            fetch(window.location.href)
-                .then(r => r.text())
-                .then(html => {
-                    const temp = document.createElement('div');
-                    temp.innerHTML = html;
-                    const newChangelist = temp.querySelector('#changelist');
-                    if (newChangelist) {
-                        changelist.innerHTML = newChangelist.innerHTML;
-                        console.log('✅ Tabla refrescada');
-                    }
-                })
-                .catch(err => {
-                    console.error('Error:', err);
-                    // Fallback a recarga completa
-                    location.reload();
+    }
+    
+    function showNotification(pedido) {
+        // Notificación simple usando alert de Django si está disponible
+        if (typeof django !== 'undefined' && django.jQuery) {
+            const $ = django.jQuery;
+            
+            // Crear notificación estilo toast
+            const toast = $(`
+                <div class="websocket-notification" style="
+                    position: fixed;
+                    bottom: 20px;
+                    right: 20px;
+                    background: var(--primary);
+                    color: white;
+                    padding: 15px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                    z-index: 9999;
+                    max-width: 300px;
+                    animation: slideIn 0.3s ease;
+                ">
+                    <div style="font-weight: bold; margin-bottom: 5px;">
+                        <span style="margin-right: 8px;">📦</span>
+                        Nuevo Pedido
+                    </div>
+                    <div style="font-size: 14px;">
+                        <strong>${pedido.codigo_pedido}</strong><br>
+                        Cliente: ${pedido.cliente}<br>
+                        Yardas: ${pedido.cantidad_yardas}
+                    </div>
+                </div>
+            `);
+            
+            $('body').append(toast);
+            
+            // Auto-eliminar después de 5 segundos
+            setTimeout(() => {
+                toast.fadeOut(300, function() {
+                    $(this).remove();
                 });
-        } else {
-            // Método 3: Recargar página completa como último recurso
-            console.log('⚠️ No se pudo refrescar tabla, recargando página...');
-            setTimeout(() => location.reload(), 1500);
+            }, 5000);
         }
     }
-
-    // Estilos
+    
+    function refreshTable() {
+        // Refrescar la tabla usando la API de Django Admin
+        const changelistForm = document.getElementById('changelist-form');
+        if (changelistForm) {
+            // Simular clic en el botón de búsqueda para refrescar
+            const searchButton = document.querySelector('input[name="_search"]');
+            if (searchButton) {
+                searchButton.click();
+            } else {
+                // Fallback: recargar la página
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        }
+    }
+    
+    // Iniciar conexión cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', connect);
+    } else {
+        connect();
+    }
+    
+    // Estilos CSS
     const style = document.createElement('style');
     style.textContent = `
-        .swal-toast {
-            background: #4CAF50 !important;
-            color: white !important;
-            border-radius: 8px !important;
-            border-left: 4px solid #2196F3 !important;
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
         
-        .highlight-new {
-            animation: highlight 2s ease;
-        }
-        
-        @keyframes highlight {
-            0% { background-color: rgba(76, 175, 80, 0.3); }
-            100% { background-color: transparent; }
+        .websocket-notification {
+            border-left: 4px solid #4CAF50;
         }
     `;
     document.head.appendChild(style);
-
-    window.addEventListener('beforeunload', () => {
-        if (ws.readyState === WebSocket.OPEN) ws.close();
-    });
+    
 })();
