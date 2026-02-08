@@ -4,7 +4,6 @@ from datetime       import timedelta
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from decouple       import config, Csv
-from urllib.parse import urlparse
 
 import os
 import logging.config
@@ -70,18 +69,8 @@ INSTALLED_APPS = BASE_APPS + LOCAL_APPS + THIRD_APPS
 
 ASGI_APPLICATION = 'configuracion.asgi.application'
 
+REDIS_URL = config('REDIS_URL', default='redis://localhost:6379')
 
-
-REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
-
-
-# Parsear la URL para asegurarnos de que es válida
-try:
-    urlparse(REDIS_URL)
-    print(f"✅ Redis URL configurada: {REDIS_URL}")
-except:
-    print(f"❌ Redis URL inválida: {REDIS_URL}")
-    REDIS_URL = 'redis://localhost:6379'
 
 CHANNEL_LAYERS = {
     'default': {
