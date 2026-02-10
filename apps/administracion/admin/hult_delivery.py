@@ -20,16 +20,16 @@ from unfold.contrib.filters.admin   import (
     MultipleDropdownFilter
 )
 
-from apps.administracion.models.rango_pedido        import RangoPedido
+from apps.administracion.models.hult_delivery        import HultDelivery
 
-@admin.register(RangoPedido)
-class RangoPedidoAdmin(ModelAdmin):
+@admin.register(HultDelivery)
+class HultDeliveryAdmin(ModelAdmin):
     list_per_page = 10
 
     def editar(self, obj):
-        return format_html('<a class="btn" href="/admin/administracion/rangopedido/{}/change/"><span class="material-symbols-outlined text-primary-600 dark:text-primary-600">edit</span></a>', obj.id)
+        return format_html('<a class="btn" href="/admin/administracion/hultdelivery/{}/change/"><span class="material-symbols-outlined text-primary-600 dark:text-primary-600">edit</span></a>', obj.id)
     def eliminar(self, obj):
-        return format_html('<a class="btn" href="/admin/administracion/rangopedido/{}/delete/"><span class="material-symbols-outlined text-red-600 dark:text-red-600">delete</span></a>', obj.id)
+        return format_html('<a class="btn" href="/admin/administracion/hultdelivery/{}/delete/"><span class="material-symbols-outlined text-red-600 dark:text-red-600">delete</span></a>', obj.id)
 
   
     list_display        = ('nombre', 'yarda_minima', 'yarda_maxima', 'editar','eliminar')

@@ -40,21 +40,24 @@ class AgregadoPrecioAdmin(ModelAdmin):
             reverse('admin:administracion_agregadoprecio_delete', args=[obj.id])
         )
     
-    def get_agregado_nombre(self, obj):
-        """Mostrar nombre del agregado"""
-        return obj.agregado.nombre if obj.agregado else "-"
-    get_agregado_nombre.short_description = 'Agregado'
-    get_agregado_nombre.admin_order_field = 'agregado__nombre'
+    # def get_agregado_nombre(self, obj):
+    #     """Mostrar nombre del agregado"""
+    #     return obj.agregado.nombre if obj.agregado else "-"
+    # get_agregado_nombre.short_description = 'Agregado'
+    # get_agregado_nombre.admin_order_field = 'agregado__nombre'
   
-    list_display = (
-        'get_agregado_nombre',
-        'precio',
-        'fecha_inicio',
-        'fecha_fin',
-        'is_active',
-        'editar',
-        'eliminar'
-    )
+    def get_list_display(self, request):
+        # Lista base de columnas
+        base_columns = ['agregado', 'precio', 'fecha_inicio', 'fecha_fin']
+        
+        # Agregar columnas dinámicamente según permisos
+        if request.user.has_perm('administracion.change_agregadoprecio'):
+            base_columns.append('editar')
+        
+        if request.user.has_perm('administracion.delete_agregadoprecio'):
+            base_columns.append('eliminar')
+            
+        return base_columns
     
     list_filter = [
         ('agregado', RelatedDropdownFilter),
@@ -62,8 +65,8 @@ class AgregadoPrecioAdmin(ModelAdmin):
     
     list_display_links = None
     actions = None
-    list_select_related = ['agregado']
-    ordering = ['-fecha_inicio']
+  
+    ordering = ['-fecha_fin', 'is_active']
     
     fieldsets = [
         (
@@ -75,100 +78,100 @@ class AgregadoPrecioAdmin(ModelAdmin):
         ),
     ]
     
-    def get_readonly_fields(self, request, obj=None):
-        """Hacer campos de solo lectura si el registro está inactivo"""
-        readonly_fields = []
+    # def get_readonly_fields(self, request, obj=None):
+    #     """Hacer campos de solo lectura si el registro está inactivo"""
+    #     readonly_fields = []
         
-        # Si el objeto existe y está inactivo, hacer todos los campos de solo lectura
-        if obj and not obj.is_active:
-            # Obtener todos los campos del modelo excepto algunos específicos
-            all_fields = [field.name for field in self.model._meta.fields]
-            # Excluir campos que no quieres que sean de solo lectura
-            excluded_fields = ['is_active']  # Mantener editable si quieres
-            readonly_fields = [f for f in all_fields if f not in excluded_fields]
+    #     # Si el objeto existe y está inactivo, hacer todos los campos de solo lectura
+    #     if obj and not obj.is_active:
+    #         # Obtener todos los campos del modelo excepto algunos específicos
+    #         all_fields = [field.name for field in self.model._meta.fields]
+    #         # Excluir campos que no quieres que sean de solo lectura
+    #         excluded_fields = ['is_active']  # Mantener editable si quieres
+    #         readonly_fields = [f for f in all_fields if f not in excluded_fields]
         
-        return readonly_fields
+    #     return readonly_fields
     
-    def has_change_permission(self, request, obj=None):
-        """Verificar si el usuario puede editar el objeto"""
-        if obj and not obj.is_active:
-            # No permitir editar si el objeto está inactivo
-            return False
-        return super().has_change_permission(request, obj)
+    # def has_change_permission(self, request, obj=None):
+    #     """Verificar si el usuario puede editar el objeto"""
+    #     if obj and not obj.is_active:
+    #         # No permitir editar si el objeto está inactivo
+    #         return False
+    #     return super().has_change_permission(request, obj)
     
-    def get_queryset(self, request):
-        """Retornar queryset vacío inicialmente solo en la vista de lista"""
-        qs = super().get_queryset(request)
+    # def get_queryset(self, request):
+    #     """Retornar queryset vacío inicialmente solo en la vista de lista"""
+    #     qs = super().get_queryset(request)
         
-        # Verificar si estamos en la vista de lista (changelist)
-        if not self.is_changelist_request(request):
-            return qs
+    #     # Verificar si estamos en la vista de lista (changelist)
+    #     if not self.is_changelist_request(request):
+    #         return qs
         
-        # Solo para la vista de lista, verificar si hay filtros
-        if not self.has_search_or_filters(request):
-            return qs.none()
+    #     # Solo para la vista de lista, verificar si hay filtros
+    #     if not self.has_search_or_filters(request):
+    #         return qs.none()
         
-        return qs
+    #     return qs
     
-    def is_changelist_request(self, request):
-        """Verificar si es una solicitud de la vista de lista (changelist)"""
-        path_info = request.path_info
+    # def is_changelist_request(self, request):
+    #     """Verificar si es una solicitud de la vista de lista (changelist)"""
+    #     path_info = request.path_info
         
-        # Si la ruta contiene change, delete, history, etc., no es changelist
-        non_changelist_patterns = ['/change/', '/delete/', '/history/', '/add/']
+    #     # Si la ruta contiene change, delete, history, etc., no es changelist
+    #     non_changelist_patterns = ['/change/', '/delete/', '/history/', '/add/']
         
-        for pattern in non_changelist_patterns:
-            if pattern in path_info:
-                return False
+    #     for pattern in non_changelist_patterns:
+    #         if pattern in path_info:
+    #             return False
         
-        # Verificar si es la URL base del modelo
-        changelist_patterns = ['/admin/administracion/agregadoprecio/', '/admin/administracion/agregadoprecio']
+    #     # Verificar si es la URL base del modelo
+    #     changelist_patterns = ['/admin/administracion/agregadoprecio/', '/admin/administracion/agregadoprecio']
         
-        for pattern in changelist_patterns:
-            if path_info.startswith(pattern):
-                remaining = path_info[len(pattern):]
-                if not remaining or remaining == '/' or '?' in remaining:
-                    return True
+    #     for pattern in changelist_patterns:
+    #         if path_info.startswith(pattern):
+    #             remaining = path_info[len(pattern):]
+    #             if not remaining or remaining == '/' or '?' in remaining:
+    #                 return True
         
-        return False
+    #     return False
     
-    def has_search_or_filters(self, request):
-        """Verificar si hay búsqueda o filtros aplicados en la vista de lista"""
-        if not self.is_changelist_request(request):
-            return True
+    # def has_search_or_filters(self, request):
+    #     """Verificar si hay búsqueda o filtros aplicados en la vista de lista"""
+    #     if not self.is_changelist_request(request):
+    #         return True
         
-        # Verificar búsqueda por texto
-        if 'q' in request.GET and request.GET['q'].strip():
-            return True
+    #     # Verificar búsqueda por texto
+    #     if 'q' in request.GET and request.GET['q'].strip():
+    #         return True
         
-        # Verificar todos los parámetros que podrían ser filtros
-        for key, value in request.GET.items():
-            if key in ['p', 'o', 'ot']:
-                continue
-            if value:
-                return True
+    #     # Verificar todos los parámetros que podrían ser filtros
+    #     for key, value in request.GET.items():
+    #         if key in ['p', 'o', 'ot']:
+    #             continue
+    #         if value:
+    #             return True
         
-        return False
+    #     return False
     
-    def get_search_results(self, request, queryset, search_term):
-        """Personalizar los resultados de búsqueda"""
-        if self.is_changelist_request(request) and not self.has_search_or_filters(request):
-            return queryset.none(), False
+    # def get_search_results(self, request, queryset, search_term):
+    #     """Personalizar los resultados de búsqueda"""
+    #     if self.is_changelist_request(request) and not self.has_search_or_filters(request):
+    #         return queryset.none(), False
         
-        return super().get_search_results(request, queryset, search_term)
+    #     return super().get_search_results(request, queryset, search_term)
     
-    def change_view(self, request, object_id, form_url='', extra_context=None):
-        """Personalizar la vista de edición"""
-        # Obtener el objeto
-        obj = self.get_object(request, object_id)
+    # def change_view(self, request, object_id, form_url='', extra_context=None):
+    #     """Personalizar la vista de edición"""
+    #     # Obtener el objeto
+    #     obj = self.get_object(request, object_id)
         
-        # Verificar si el objeto está activo
-        if obj and not obj.is_active:
-            # Agregar mensaje de advertencia
-            if extra_context is None:
-                extra_context = {}
-            extra_context['warning_message'] = _(
-                "Este registro está inactivo. No se puede editar."
-            )
+    #     # Verificar si el objeto está activo
+    #     if obj and not obj.is_active:
+    #         # Agregar mensaje de advertencia
+    #         if extra_context is None:
+    #             extra_context = {}
+    #         extra_context['warning_message'] = _(
+    #             "Este registro está inactivo. No se puede editar."
+    #         )
         
-        return super().change_view(request, object_id, form_url, extra_context)
+    #     return super().change_view(request, object_id, form_url, extra_context)

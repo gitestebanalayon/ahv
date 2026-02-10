@@ -20,16 +20,16 @@ from unfold.contrib.filters.admin   import (
     MultipleDropdownFilter
 )
 
-from apps.administracion.models.precio_rango_pedido        import PrecioRangoPedido
+from apps.administracion.models.precio_hult_delivery        import PrecioHultDelivery
 
-@admin.register(PrecioRangoPedido)
-class PrecioRangoPedidoAdmin(ModelAdmin):
+@admin.register(PrecioHultDelivery)
+class PrecioHultDeliveryAdmin(ModelAdmin):
     list_per_page = 10
 
     def editar(self, obj):
         if self.has_change_permission(self.request, obj=obj):
             return format_html(
-                '<a class="btn" href="/admin/administracion/preciorangopedido/{}/change/">'
+                '<a class="btn" href="/admin/administracion/preciohultdelivery/{}/change/">'
                 '<span class="material-symbols-outlined text-primary-600 dark:text-primary-600">edit</span>'
                 '</a>', 
                 obj.id
@@ -42,7 +42,7 @@ class PrecioRangoPedidoAdmin(ModelAdmin):
     def eliminar(self, obj):
         if self.has_delete_permission(self.request, obj=obj):
             return format_html(
-                '<a class="btn" href="/admin/administracion/preciorangopedido/{}/delete/">'
+                '<a class="btn" href="/admin/administracion/preciohultdelivery/{}/delete/">'
                 '<span class="material-symbols-outlined text-red-600 dark:text-red-600">delete</span>'
                 '</a>', 
                 obj.id
@@ -52,17 +52,22 @@ class PrecioRangoPedidoAdmin(ModelAdmin):
     eliminar.allow_tags = True
         
   
+    def get_list_display(self, request):
+        # Lista base de columnas
+        base_columns = ['hult_delivery', 'precio', 'fecha_inicio', 'fecha_fin']
+        
+        # Agregar columnas dinámicamente según permisos
+        if request.user.has_perm('administracion.change_preciohultdelivery'):
+            base_columns.append('editar')
+        
+        if request.user.has_perm('administracion.delete_preciohultdelivery'):
+            base_columns.append('eliminar')
+            
+        return base_columns
 
 
-    def rango_pedido_str(self, obj):
-            if obj.rango_pedido:
-                return str(obj.rango_pedido)
-            return "-"
-    rango_pedido_str.short_description = "Rango"
-    rango_pedido_str.admin_order_field = "rango_pedido__nombre"
   
-  
-    list_display        = ('rango_pedido_str', 'precio_por_yarda', 'fecha_inicio', 'fecha_fin', 'editar','eliminar')
+    list_display        = ('hult_delivery', 'precio', 'fecha_inicio', 'fecha_fin', 'editar','eliminar')
     list_filter         = []
     search_fields       = []
     list_display_links  = None
@@ -72,10 +77,10 @@ class PrecioRangoPedidoAdmin(ModelAdmin):
     
     fieldsets = [
         (
-            ("Precio de Rango"), 
+            ("Precio de Hult Delivery"), 
             {
                 "classes":  ["tab"],
-                "fields":   ['rango_pedido', 'precio_por_yarda', 'motivo_cambio'],
+                "fields":   ['hult_delivery', 'precio', 'motivo_cambio'],
             }
         ),
 

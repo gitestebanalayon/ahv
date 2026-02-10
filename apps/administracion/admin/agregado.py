@@ -11,7 +11,7 @@ class AgregadoAdmin(admin.ModelAdmin):
     def eliminar(self, obj):
         return format_html('<a class="btn" href="/admin/administracion/agregado/{}/delete/"><span class="material-symbols-outlined text-red-600 dark:text-red-600">delete</span></a>', obj.id)
 
-    list_display = ('nombre', 'descripcion', 'precio_actual', 'editar', 'eliminar')
+    list_display = ('nombre', 'editar', 'eliminar')
 
     list_filter         = []
     search_fields       = []

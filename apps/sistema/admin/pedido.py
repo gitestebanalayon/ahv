@@ -245,16 +245,16 @@ class PedidoAdmin(ModelAdmin):
     eliminar.short_description = ''  # Esto oculta el encabezado de la columna
     eliminar.allow_tags = True
     
-    def has_change_permission(self, request, obj=None):
-        """
-        Sobrescribir para no permitir editar pedidos completados o cancelados
-        """
-        if obj is not None:
-            estado_actual = str(obj.estado_pedido).lower().strip()
-            if estado_actual in ['completado', 'cancelado']:
-                return False
+    # def has_change_permission(self, request, obj=None):
+    #     """
+    #     Sobrescribir para no permitir editar pedidos completados o cancelados
+    #     """
+    #     if obj is not None:
+    #         estado_actual = str(obj.estado_pedido).lower().strip()
+    #         if estado_actual in ['completado', 'cancelado']:
+    #             return False
         
-        return super().has_change_permission(request, obj)
+    #     return super().has_change_permission(request, obj)
 
     def has_delete_permission(self, request, obj=None):
         """
@@ -287,7 +287,7 @@ class PedidoAdmin(ModelAdmin):
     
     mostrar_agregados.short_description = "Agregados"
 
-    list_display        = ('cliente', 'numero_orden', 'cantidad_yardas', 'slump', 'estado', 'mas_detalles', 'entregas_realizadas', 'despachos', 'editar', 'eliminar')
+    list_display        = ('cliente', 'numero_orden', 'tipo_concreto', 'cantidad_yardas', 'slump', 'estado', 'mas_detalles', 'entregas_realizadas', 'despachos', 'editar', 'eliminar')
     list_filter         = ()
     search_fields       = ('cliente__tipo_documento','cliente__numero', 'codigo_pedido',)
     # list_display_links  = None
@@ -302,7 +302,7 @@ class PedidoAdmin(ModelAdmin):
             ("Pedido"), 
             {
                 "classes":  ["tab"],
-                "fields":   ['cliente', 'cantidad_yardas', 'slump', 'agregado', 'fecha_entrega', 'hora_entrega', 'direccion_entrega', 'nota'],
+                "fields":   ['cliente', 'tipo_concreto', 'cantidad_yardas', 'slump', 'agregado', 'fecha_entrega', 'hora_entrega', 'direccion_entrega', 'nota'],
             }
         ),
 
@@ -391,7 +391,7 @@ class PedidoAdmin(ModelAdmin):
         print(f"Agregados después de guardar: {list(obj.agregado.all())}")
         
         # Ahora sí calcular los precios
-        obj.calcular_precios()
+        # obj.calcular_precios()
         
         # Guardar los campos calculados
         update_fields = [
