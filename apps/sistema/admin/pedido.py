@@ -245,16 +245,16 @@ class PedidoAdmin(ModelAdmin):
     eliminar.short_description = ''  # Esto oculta el encabezado de la columna
     eliminar.allow_tags = True
     
-    # def has_change_permission(self, request, obj=None):
-    #     """
-    #     Sobrescribir para no permitir editar pedidos completados o cancelados
-    #     """
-    #     if obj is not None:
-    #         estado_actual = str(obj.estado_pedido).lower().strip()
-    #         if estado_actual in ['completado', 'cancelado']:
-    #             return False
+    def has_change_permission(self, request, obj=None):
+        """
+        Sobrescribir para no permitir editar pedidos completados o cancelados
+        """
+        if obj is not None:
+            estado_actual = str(obj.estado_pedido).lower().strip()
+            if estado_actual in ['completado', 'cancelado']:
+                return False
         
-    #     return super().has_change_permission(request, obj)
+        return super().has_change_permission(request, obj)
 
     def has_delete_permission(self, request, obj=None):
         """
@@ -308,7 +308,6 @@ class PedidoAdmin(ModelAdmin):
 
     ]
     
-    
     def entrega_view(self, request, pedido_id):
         pedido = get_object_or_404(Pedido, id=pedido_id)
         
@@ -356,55 +355,55 @@ class PedidoAdmin(ModelAdmin):
         
         return obj
     
-    def save_model(self, request, obj, form, change):
-        """
-        Sobrescribir save_model - Versión CORREGIDA
-        """
-        print(f"=== DEBUG save_model ===")
-        print(f"Pedido ID antes: {obj.id}")
-        print(f"Es cambio: {change}")
+    # def save_model(self, request, obj, form, change):
+    #     """
+    #     Sobrescribir save_model - Versión CORREGIDA
+    #     """
+    #     print(f"=== DEBUG save_model ===")
+    #     print(f"Pedido ID antes: {obj.id}")
+    #     print(f"Es cambio: {change}")
         
-        # Guardar el objeto principal PRIMERO
-        super().save_model(request, obj, form, change)
+    #     # Guardar el objeto principal PRIMERO
+    #     super().save_model(request, obj, form, change)
         
-        print(f"Pedido ID después: {obj.id}")
+    #     print(f"Pedido ID después: {obj.id}")
         
         # NO calcular precios aquí todavía - se hará en save_related
         
-    def save_related(self, request, form, formsets, change):
-        """
-        Este método se ejecuta DESPUÉS de que se han guardado las relaciones ManyToMany
-        Aquí es donde debemos calcular los precios
-        """
-        print(f"=== DEBUG save_related ===")
-        print(f"Calculando precios después de guardar relaciones...")
+    # def save_related(self, request, form, formsets, change):
+    #     """
+    #     Este método se ejecuta DESPUÉS de que se han guardado las relaciones ManyToMany
+    #     Aquí es donde debemos calcular los precios
+    #     """
+    #     print(f"=== DEBUG save_related ===")
+    #     print(f"Calculando precios después de guardar relaciones...")
         
-        # Primero llamar al método padre
-        super().save_related(request, form, formsets, change)
+    #     # Primero llamar al método padre
+    #     super().save_related(request, form, formsets, change)
         
-        # Obtener el objeto del formulario
-        obj = form.instance
+    #     # Obtener el objeto del formulario
+    #     obj = form.instance
         
-        # Refrescar para obtener las relaciones ManyToMany
-        obj.refresh_from_db()
+    #     # Refrescar para obtener las relaciones ManyToMany
+    #     obj.refresh_from_db()
         
-        print(f"Agregados después de guardar: {list(obj.agregado.all())}")
+    #     print(f"Agregados después de guardar: {list(obj.agregado.all())}")
         
-        # Ahora sí calcular los precios
-        # obj.calcular_precios()
+    #     # Ahora sí calcular los precios
+    #     obj.calcular_precios()
         
-        # Guardar los campos calculados
-        update_fields = [
-            'subtotal_yardas', 'subtotal_agregados', 'precio_total', 
-            'fecha_modificacion', 'rango_pedido', 'rango_pedido_codigo',
-            'precio_por_yarda_aplicado', 'precio_por_yarda_aplicado_codigo'
-        ]
+    #     # Guardar los campos calculados
+    #     update_fields = [
+    #         'subtotal_yardas', 'subtotal_agregados', 'subtotal_hultdelivery', 'precio_total', 
+    #         'fecha_modificacion', 'rango_pedido', 'rango_pedido_codigo',
+    #         'precio_por_yarda_aplicado', 'precio_por_yarda_aplicado_codigo'
+    #     ]
         
-        # Filtrar solo campos que existen
-        campos_existentes = [campo for campo in update_fields if hasattr(obj, campo)]
-        if campos_existentes:
-            obj.save(update_fields=campos_existentes)
-            print(f"Campos calculados guardados: {campos_existentes}")
+    #     # Filtrar solo campos que existen
+    #     campos_existentes = [campo for campo in update_fields if hasattr(obj, campo)]
+    #     if campos_existentes:
+    #         obj.save(update_fields=campos_existentes)
+    #         print(f"Campos calculados guardados: {campos_existentes}")
        
     def response_add(self, request, obj, post_url_continue=None):
         """

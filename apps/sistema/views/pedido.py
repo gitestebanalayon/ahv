@@ -10,6 +10,8 @@ from typing import Dict, Any
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from datetime import datetime
+from decouple import config
+import jwt
 
 from apps.sistema.models import Pedido, Entrega
 from apps.cuenta.models import User
@@ -25,8 +27,8 @@ from apps.decoradores.verificar_permisos import permission_required
 tag = ['Pedido']
 router = Router()
 
-
-@router.post("/crear", tags=tag, response={201: SuccessSchema, 400: ErrorSchema})
+@permission_required('sistema.add_pedido')
+@router.post("/crear", tags=tag, response={201: SuccessSchema, 400: ErrorSchema}, auth=JWTAuth())
 def crear_pedido(request, data: CrearPedidoSchema):
     """
     Crear nuevo pedido con notificación WebSocket
@@ -61,9 +63,21 @@ def crear_pedido(request, data: CrearPedidoSchema):
                     message=f"Cliente ID {data.cliente_id} no encontrado"
                 )
             
+
+             # ✅ SOLUCIÓN: Obtener la instancia de TipoConcreto
+            try:
+                from apps.administracion.models.tipo_concreto import TipoConcreto  # Importa aquí o arriba
+                tipo_concreto = TipoConcreto.objects.get(id=data.tipo_concreto_id)
+            except TipoConcreto.DoesNotExist:
+                return 400, ErrorSchema.from_exception(
+                    status_code=400,
+                    path=request.path,
+                    message=f"Tipo de concreto ID {data.tipo_concreto_id} no encontrado"
+                )
+            
             # Obtener estado pendiente
             try:
-                estado_pendiente = EstadoPedido.objects.get(nombre='pendiente')
+                estado_pendiente = EstadoPedido.objects.get(nombre='Pendiente')
             except EstadoPedido.DoesNotExist:
                 return 400, ErrorSchema.from_exception(
                     status_code=400,
@@ -74,6 +88,7 @@ def crear_pedido(request, data: CrearPedidoSchema):
             # Crear pedido
             pedido = Pedido(
                 cliente=cliente,
+                tipo_concreto=tipo_concreto,
                 cantidad_yardas=data.cantidad_yardas,
                 direccion_entrega=data.direccion_entrega,
                 fecha_entrega=data.fecha_entrega,
@@ -94,6 +109,44 @@ def crear_pedido(request, data: CrearPedidoSchema):
                     pedido.agregado.set(agregados_instances)
                     print(f"✅ Agregados asignados: {agregados_instances.count()}")
             
+            # ============= 🔴 CORRECCIÓN HULTDELIVERY =============
+            try:
+                # 1. Determinar el HultDelivery según yardas
+                from apps.administracion.models.hult_delivery import HultDelivery
+                from apps.administracion.models.precio_hult_delivery import PrecioHultDelivery
+                
+                hult_delivery = HultDelivery.objects.filter(is_delete=False).order_by('yarda_minima')
+                
+                for hult in hult_delivery:
+                    if hult.verificar_rango_delivery(pedido.cantidad_yardas):
+                        # Asignar el hultdelivery al pedido
+                        pedido.hultdelivery = hult
+                        
+                        # Obtener precio activo
+                        precio_activo = PrecioHultDelivery.objects.filter(
+                            hult_delivery=hult,
+                            is_active=True
+                        ).first()
+                        
+                        if precio_activo:
+                            pedido.subtotal_hultdelivery = precio_activo.precio
+                            print(f"✅ HultDelivery asignado: {hult.nombre} - ${precio_activo.precio}")
+                        else:
+                            pedido.subtotal_hultdelivery = 0
+                            print(f"⚠️ HultDelivery {hult.nombre} sin precio activo")
+                        
+                        break
+                
+                # Guardar los cambios de hultdelivery
+                pedido.save(update_fields=['hultdelivery', 'subtotal_hultdelivery', 'fecha_modificacion'])
+                
+            except Exception as e:
+                print(f"⚠️ Error asignando HultDelivery: {e}")
+                import traceback
+                traceback.print_exc()
+            # ======================================================
+
+
             # Calcular precios
             try:
                 pedido.calcular_precios()
@@ -164,20 +217,37 @@ def crear_pedido(request, data: CrearPedidoSchema):
             message=f"Error interno: {str(e)}"
         )
     
-# @permission_required('sistema.view_conductor')
-@router.get("/listar", tags=tag, response=ListResponse)
+@permission_required('sistema.view_pedido')
+@router.get("/listar", tags=tag, response=ListResponse, auth=JWTAuth())
 def listar(
     request: HttpRequest,
     page: int = Query(1, description="Número de página"),
     page_size: int = Query(10, description="Cantidad de elementos por página"),
     pedido_id: int = Query(None, description="Filtrar por ID el pedido"),
 ):
+    user = request.user
+
+
     # Validar y ajustar parámetros de paginación
     page = max(1, page)
     page_size = min(max(1, page_size), 100)
 
-    # Query base con prefetch_related para optimizar las consultas
-    qs = Pedido.objects.all().order_by('id')
+    # Query base
+    qs = Pedido.objects.all().order_by('-fecha_creacion')  # Orden descendente
+    
+    # 🔥 FILTROS SEGÚN ROL
+    es_cliente = user.groups.filter(name='Clientes').exists()
+    es_administrador = user.is_staff or user.groups.filter(name='Administradores').exists()
+    
+    if es_cliente:
+        # Clientes: solo ven sus propios pedidos
+        qs = qs.filter(cliente=user)
+    elif es_administrador:
+        # Administradores: pueden ver todo
+        pass
+    else:
+        # Otros roles: lógica personalizada
+        pass
     
     # Filtrar por pedido_id si se proporciona
     if pedido_id:
@@ -185,7 +255,9 @@ def listar(
     
     # IMPORTANTE: Prefetch las entregas relacionadas para optimizar
     # Django usa 'entrega_set' por defecto cuando no hay related_name
-    qs = qs.prefetch_related('entrega_set')
+     # Optimizar consultas
+    qs = qs.select_related('cliente', 'estado_pedido', 'tipo_concreto')\
+            .prefetch_related('entrega_set', 'agregado')
     
     # Calcular totales
     total_data = qs.count()

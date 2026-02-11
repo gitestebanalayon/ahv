@@ -1,3 +1,22 @@
+# import json
+# from channels.generic.websocket import AsyncWebsocketConsumer
+
+# class PedidoConsumer(AsyncWebsocketConsumer):
+#     async def connect(self):
+#         # Extraemos el nombre del operativo de la URL
+#         self.operativo_nombre = self.scope['url_route']['kwargs']['operativo_nombre']
+#         # Creamos un nombre de grupo dinámico basado en el operativo
+#         self.room_group_name = f"registro_{self.operativo_nombre}"
+
+#         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+#         await self.accept()
+
+#     async def disconnect(self, code):
+#         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+#     async def enviar_conteo(self, event):
+#         await self.send(text_data=json.dumps({"total": event["conteo"]}))
+
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async

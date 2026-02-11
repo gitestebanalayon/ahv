@@ -30,7 +30,7 @@ class Pedido(models.Model):
                                       db_column="estado_pedido", 
                                       related_name='estado_pedido', 
                                       to_field='nombre', 
-                                      default='pendiente')
+                                      default='Pendiente')
     
     slump = models.IntegerField('Slump', blank=True, null=True)
     
@@ -124,7 +124,6 @@ class Pedido(models.Model):
         except Exception as e:
             print(f"Error obteniendo precio activo: {e}")
             return None
-    
    
     def calcular_subtotal_agregados(self):
         """Calcula el subtotal de todos los agregados del pedido"""
@@ -180,6 +179,8 @@ class Pedido(models.Model):
             if precio_delivery:
                 self.subtotal_hultdelivery = precio_delivery
                 # print(f"🧱 Subtotal hultdelivery: ${self.subtotal_hultdelivery}")
+            else:
+                self.subtotal_hultdelivery = 0
 
 
             # 3. Calcular subtotal de yardas
@@ -250,6 +251,7 @@ class Pedido(models.Model):
       
         # Guardar primero para obtener ID
         super().save(*args, **kwargs)
+        
         
         # NOTA: Los cálculos se harán desde el admin en save_related
         # para asegurar que los ManyToMany ya están guardados
