@@ -1,6 +1,6 @@
 # apps/administracion/models/precio_rango_pedido.py
 from django.db import models
-from django.utils import timezone
+from datetime import date
 from django.db.models import Max
 from apps.administracion.models.hult_delivery import HultDelivery
 
@@ -8,7 +8,7 @@ from apps.administracion.models.hult_delivery import HultDelivery
 class PrecioHultDelivery(models.Model):
     hult_delivery = models.ForeignKey(HultDelivery, on_delete=models.PROTECT, related_name='precios')
     precio = models.DecimalField('Precio', max_digits=10, decimal_places=2)
-    fecha_inicio = models.DateField('Fecha Inicio', default=timezone.now)
+    fecha_inicio = models.DateField('Fecha Inicio', default=date.today)
     fecha_fin = models.DateField('Fecha Fin', null=True, blank=True)
     motivo_cambio = models.CharField('Motivo Cambio', max_length=255, blank=True)
     is_active = models.BooleanField('Activo', default=False)
@@ -28,8 +28,8 @@ class PrecioHultDelivery(models.Model):
 
     def save(self, *args, **kwargs):
         # Si es nuevo y no tiene fecha_inicio, usar hoy
-        if not self.pk and not self.fecha_inicio:
-            self.fecha_inicio = timezone.now().date()
+        # if not self.pk and not self.fecha_inicio:
+        #     self.fecha_inicio = timezone.now().date()
         
         # Si es nuevo y activo, desactivar el anterior
         if not self.pk:
@@ -40,7 +40,7 @@ class PrecioHultDelivery(models.Model):
             )
             for anterior in anteriores:
                 anterior.is_active = False
-                anterior.fecha_fin = timezone.now().date()
+                anterior.fecha_fin = date.today()
                 anterior.save()
         
         super().save(*args, **kwargs)

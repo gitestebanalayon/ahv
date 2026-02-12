@@ -40,3 +40,13 @@ class TipoConcretoAdmin(ModelAdmin):
     actions             = None #[desactivar, reactivar]
     list_select_related = True
     ordering = ['nombre']
+    
+    fieldsets = [
+        (
+            ("Tipo de Concreto"), 
+            {
+                "classes":  ["tab"],
+                "fields":   ['nombre', 'descripcion'],
+            }
+        ),
+    ]

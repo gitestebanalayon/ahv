@@ -65,4 +65,12 @@ class TipoConcretoPrecioAdmin(ModelAdmin):
         ('tipo_concreto', RelatedDropdownFilter),
     ]
 
-    
+    fieldsets = [
+        (
+            ("Precios"), 
+            {
+                "classes":  ["tab"],
+                "fields":   ['tipo_concreto', 'precio', 'motivo_cambio'],
+            }
+        ),
+    ]

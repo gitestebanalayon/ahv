@@ -316,6 +316,7 @@ class Entrega(models.Model):
   
     class Meta:
         managed = True
+        db_table = 'sistema\".\"entrega'
         verbose_name = 'Entrega'
         verbose_name_plural = 'Entregas'
         unique_together = ['pedido', 'secuencia']
