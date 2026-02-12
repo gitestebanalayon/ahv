@@ -11,7 +11,7 @@ class PrecioHultDelivery(models.Model):
     fecha_inicio = models.DateField('Fecha Inicio', default=date.today)
     fecha_fin = models.DateField('Fecha Fin', null=True, blank=True)
     motivo_cambio = models.CharField('Motivo Cambio', max_length=255, blank=True)
-    is_active = models.BooleanField('Activo', default=False)
+    is_active = models.BooleanField('Activo', default=True)
     fecha_creacion = models.DateTimeField('Fecha Creación', auto_now_add=True)
     fecha_actualizacion = models.DateTimeField('Fecha Actualización', auto_now=True)
 

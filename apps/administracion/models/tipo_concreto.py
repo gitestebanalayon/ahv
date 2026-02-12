@@ -1,6 +1,7 @@
 # apps/administracion/models/tipo_concreto.py
 from django.db import models
 from django.db.models import Max
+from datetime import date
 
 class TipoConcreto(models.Model):
     codigo = models.CharField('Código', max_length=20, unique=True)
@@ -52,5 +53,22 @@ class TipoConcreto(models.Model):
     # @property
     # def precio_actual(self):
     #     """Obtiene el precio activo actual del agregado"""
-    #     precio = self.precios.filter(is_active=True).first()
+    #     precio = self.tipoconcretoprecio_set.filter(is_active=True).first()
     #     return precio.precio if precio else 0
+    
+    @property    
+    def precio_actual(self):
+        """Obtiene el precio activo actual del tipo de concreto"""
+        precio = self.tipoconcretoprecio_set.filter(
+            is_active=True,
+            fecha_inicio__lte=date.today()
+        ).order_by('-fecha_inicio').first()
+        return precio.precio if precio else 0
+    
+    # @property
+    # def precio_actual_obj(self):
+    #     """Obtiene el objeto completo del precio activo actual"""
+    #     return self.tipoconcretoprecio_set.filter(
+    #         is_active=True,
+    #         fecha_inicio__lte=date.today()
+    #     ).order_by('-fecha_inicio').first()
