@@ -1,0 +1,6 @@
+from apps.administracion.models.agregado_precio import AgregadoPrecio
+from apps.administracion.models.agregado import Agregado
+from apps.administracion.models.precio_hult_delivery import PrecioHultDelivery
+from apps.administracion.models.hult_delivery import HultDelivery
+from apps.administracion.models.tipo_concreto import TipoConcreto
+from apps.administracion.models.tipo_concreto_precio import TipoConcretoPrecio

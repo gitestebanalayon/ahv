@@ -37,9 +37,9 @@ class VehiculoAdmin(ModelAdmin):
     list_per_page = 10
 
     def editar(self, obj):
-        return format_html('<a class="btn" href="/admin/sistema/vehiculo/{}/change/"><span class="material-symbols-outlined text-blue-700 dark:text-blue-200">edit</span></a>', obj.id)
+        return format_html('<a class="btn" href="/admin/sistema/vehiculo/{}/change/"><span class="material-symbols-outlined text-primary-600 dark:text-primary-200">edit</span></a>', obj.id)
     def eliminar(self, obj):
-        return format_html('<a class="btn" href="/admin/sistema/vehiculo/{}/delete/"><span class="material-symbols-outlined text-red-700 dark:text-red-200">delete</span></a>', obj.id)
+        return format_html('<a class="btn" href="/admin/sistema/vehiculo/{}/delete/"><span class="material-symbols-outlined text-red-600 dark:text-red-200">delete</span></a>', obj.id)
 
     def estado_vehiculo(self, obj):
         return format_html('<span class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">{}</span>', obj.estado_vehiculo_nombre)

@@ -1,0 +1,32 @@
+# apps/administracion/models/rango_pedido.py
+from django.db import models
+from django.db.models import Max
+
+
+class HultDelivery(models.Model):
+    nombre = models.CharField('Nombre', max_length=50, unique=True)
+    yarda_minima = models.DecimalField('Yarda Mínima', max_digits=10, decimal_places=1)
+    yarda_maxima = models.DecimalField('Yarda Máxima', max_digits=10, decimal_places=1, null=True, blank=True)
+    is_delete = models.BooleanField('Eliminado', default=False)
+    fecha_creacion = models.DateTimeField('Fecha Creación', auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField('Fecha Actualización', auto_now=True)
+
+    class Meta:
+        managed = True
+        # db_table = 'rango_pedido'
+        db_table = 'administracion\".\"hult_delivery'
+        verbose_name = 'Hult Delivery'
+        verbose_name_plural = 'Hults Deliverys'
+
+    def __str__(self):
+        if self.yarda_maxima:
+            return f'{self.nombre} ({self.yarda_minima} - {self.yarda_maxima} yardas)'
+        return f'{self.nombre} ({self.yarda_minima}+ yardas)'
+    
+    def verificar_rango_delivery(self, cantidad_yardas):
+        """Verifica si una cantidad de yardas está en el rango de hult delivery"""
+        if self.yarda_maxima:
+            return self.yarda_minima <= cantidad_yardas <= self.yarda_maxima
+        return cantidad_yardas >= self.yarda_minima
+    
+  

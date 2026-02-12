@@ -11,7 +11,16 @@ import logging.config
 BASE_DIR            = Path(__file__).resolve().parent.parent
 SECRET_KEY          = config('SECRET_KEY')
 DEBUG               = config('DEBUG')
-ALLOWED_HOSTS       = config('ALLOWED_HOSTS', cast=Csv())
+# ALLOWED_HOSTS       = config('ALLOWED_HOSTS', cast=Csv())
+
+ALLOWED_HOSTS = [
+    'ahv-jcsu.onrender.com',
+    'www.ahv-jcsu.onrender.com', 
+    '.onrender.com',
+    'localhost',
+    '127.0.0.1',
+    '172.16.0.78',  # Tu IP local si la necesitas
+]
 
 
 # Application definition
@@ -41,9 +50,11 @@ LOCAL_APPS = [
     'apps.auxiliares',
     'apps.sistema',
     'apps.frontend',
+    'apps.administracion',
 ]
 
 THIRD_APPS = [
+    'channels',
     'corsheaders',
     'ninja_extra',
     'ninja_jwt',
@@ -56,7 +67,116 @@ THIRD_APPS = [
 
 INSTALLED_APPS = BASE_APPS + LOCAL_APPS + THIRD_APPS
 
+ASGI_APPLICATION = 'configuracion.asgi.application'
 
+# REDIS_URL = config('REDIS_URL', default='redis://localhost:6379')
+
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    },
+}
+
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [REDIS_URL],
+#             "capacity": 1500,  # default 100
+#             "expiry": 10,  # default 60
+#         },
+#     },
+# }
+
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": REDIS_URL,
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#             "CONNECTION_POOL_KWARGS": {
+#                 "max_connections": 50,
+#                 "retry_on_timeout": True,
+#             },
+#             "IGNORE_EXCEPTIONS": True,
+#             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+#         }
+#     }
+# }
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",
+    }
+}
+
+# Configuración de sesiones en Redis (opcional pero recomendado)
+# SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# SESSION_CACHE_ALIAS = "default"
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_AGE = 1209600  # 2 semanas
+
+
+# CELERY_BROKER_URL = REDIS_URL
+# CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    "visibility_timeout": 3600,
+    "max_retries": 3,
+}
+
+# CELERY_ACCEPT_CONTENT = ["application/json"]
+# CELERY_TASK_SERIALIZER = "json"
+# CELERY_RESULT_SERIALIZER = "json"
+# CELERY_TIMEZONE = TIME_ZONE
+
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [('127.0.0.1', 6379)],
+#         },
+#     },
+# }
+
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer"
+#     },
+# }
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://ahv-jcsu.onrender.com',
+    'https://www.ahv-jcsu.onrender.com',
+    'https://*.onrender.com',
+    'wss://*.onrender.com',  # Para WebSockets
+]
+
+# CSRF_COOKIE_DOMAIN = '.onrender.com'
+# SESSION_COOKIE_DOMAIN = '.onrender.com'
+# CSRF_COOKIE_SECURE = True
+# SESSION_COOKIE_SECURE = True
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# SECURE_SSL_REDIRECT = True
+
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+# Configuración de seguridad para Render
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRECLOAD = True
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -72,6 +192,7 @@ SERVER_EMAIL = 'serviciosesteban953@gmail.com'
 
 MIDDLEWARE      =   [
                         'django.middleware.security.SecurityMiddleware',
+                        'whitenoise.middleware.WhiteNoiseMiddleware',
                         'django.contrib.sessions.middleware.SessionMiddleware',
                         # Incluida
                         "corsheaders.middleware.CorsMiddleware",
@@ -122,7 +243,7 @@ WSGI_APPLICATION = "configuracion.wsgi.application"
 
 DATABASES = {
                 'default' :     {
-                                    'ENGINE':           'django.db.backends.mysql',
+                                    'ENGINE':           'django.db.backends.postgresql',
                                     'NAME':             config('DB_PRINCIPAL'),
                                     'USER':             config('USUARIO_PRODUCCION'),
                                     'PASSWORD':         config('CLAVE_PRODUCCION'),
@@ -166,16 +287,21 @@ STATIC_ROOT         = os.path.join(BASE_DIR, 'static', )
 MEDIA_ROOT          = os.path.join(BASE_DIR, 'media/')
 MEDIA_URL           = '/media/'
 
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-CORS_ALLOW_ALL_ORIGINS          =   True # Si esta en True acepta peticiones de cualquier origen
-                                         # Si esta en True entonces `CORS_ALLOWED_ORIGINS` no tendra efecto
-CORS_ALLOW_CREDENTIALS          =   True
 
-'''
-CORS_ALLOWED_ORIGINS =  [
-                            "https://example.com",
-                        ]
-'''
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "https://ahv-jcsu.onrender.com",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+CORS_ALLOW_CREDENTIALS = True
+
+if DEBUG:
+    CORS_ALLOWED_ORIGINS.append("http://localhost:3000")
+    CORS_ALLOWED_ORIGINS.append("http://127.0.0.1:3000")
+
 AUTH_USER_MODEL         = 'cuenta.User'
 AUTH_PASSWORD_RESET_URL = "http://127.0.0.1:8000/<YOUR_PASSWORD_RESET_FRONTEND_URL>/"
 
@@ -225,27 +351,46 @@ SWAGGER_SETTINGS =  {
                     }
 
 # Configuracion de CELERY
-REDIS_URL                       =   os.getenv("BROKER_URL", "redis://localhost:6379")
-CELERY_BROKER_URL               =   REDIS_URL
-CELERY_BROKER_TRANSPORT_OPTIONS =   {
-                                        "visibility_timeout": 3600,  # 1 hour
-                                    }
-CELERY_ACCEPT_CONTENT           =   ["application/json"]
-CELERY_TASK_SERIALIZER          =   "json"
-CELERY_RESULT_SERIALIZER        =   "json"
-CELERY_TIMEZONE                 =   TIME_ZONE
+# REDIS_URL                       =   os.getenv("BROKER_URL", "redis://localhost:6379")
+# 4. Celery también usar Redis Cloud
 
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "unique-snowflake",
-    }
-}
 
-# Optional: This is to ensure Django sessions are stored in Redis
-SESSION_ENGINE      = 'django.contrib.sessions.backends.cache'
-SESSION_CACHE_ALIAS = 'default'
+
+
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+#         "LOCATION": "unique-snowflake",
+#     }
+# }
+
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": REDIS_URL,
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#             "CONNECTION_POOL_KWARGS": {
+#                 "max_connections": 50,
+#                 "retry_on_timeout": True,
+#             },
+#             "IGNORE_EXCEPTIONS": True,
+#         }
+#     }
+# }
+
+
+# # Optional: This is to ensure Django sessions are stored in Redis
+# SESSION_ENGINE      = 'django.contrib.sessions.backends.cache'
+# SESSION_CACHE_ALIAS = 'default'
+
+# 3. Sesiones en Redis
+# SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# SESSION_CACHE_ALIAS = "default"
+# SESSION_COOKIE_AGE = 1209600  # 2 semanas
+
+
 
 #NINJA_JWT                       = {'TOKEN_OBTAIN_PAIR_INPUT_SCHEMA': 'apps.cuenta.views.token.MyTokenObtainPairInputSchema',}
 # Configuracion del uso de JWT
@@ -339,34 +484,89 @@ UNFOLD = {
      
      "COLORS": 
                 {
-                    "base": 
-                    {
-                        #"50": "oklch(98.5% .002 247.839)",
-                        #"100": "oklch(96.7% .003 264.542)",
-                        #"200": "oklch(92.8% .006 264.531)",
-                        #"300": "oklch(87.2% .01 258.338)",
-                        #"400": "oklch(70.7% .022 261.325)",
-                        #"500": "oklch(55.1% .027 264.364)",
-                        "600": "oklch(44.6% .03 256.802)",
-                        #"700": "oklch(37.3% .034 259.733)",
-                        #"800": "oklch(27.8% .033 256.848)",
-                        #"900": "oklch(21% .034 264.665)",
-                        #"950": "oklch(13% .028 261.692)",
+                    # "base": 
+                    # {
+                    #     #"50": "oklch(98.5% .002 247.839)",
+                    #     #"100": "oklch(96.7% .003 264.542)",
+                    #     #"200": "oklch(92.8% .006 264.531)",
+                    #     #"300": "oklch(87.2% .01 258.338)",
+                    #     #"400": "oklch(70.7% .022 261.325)",
+                    #     #"500": "oklch(55.1% .027 264.364)",
+                    #     "600": "oklch(44.6% .03 256.802)",
+                    #     #"700": "oklch(37.3% .034 259.733)",
+                    #     #"800": "oklch(27.8% .033 256.848)",
+                    #     #"900": "oklch(21% .034 264.665)",
+                    #     #"950": "oklch(13% .028 261.692)",
+                    # },
+                    
+                    "primary": {
+                        "50": "#e8f0f9",
+                        "100": "#c5daf0",
+                        "200": "#9dc2e7",
+                        "300": "#75aade",
+                        "400": "#4d92d5",
+                        "500": "#257acc",    # Azul medio
+                        "600": "#1164ad",    # TU COLOR PRINCIPAL
+                        "700": "#0e508a",
+                        "800": "#0a3c68",
+                        "900": "#072845",
+                        "950": "#041423",
                     },
                     
-                    "primary": 
-                    {
-                        #" 50": "oklch(97.7% .014 308.299)",
-                        #"100": "oklch(94.6% .033 307.174)",
-                        #"200": "oklch(90.2% .063 306.703)",
-                        #"300": "oklch(82.7% .119 306.383)",
-                        #"400": "oklch(71.4% .203 305.504)",
-                        #"500": "oklch(62.7% .265 303.9)",
-                        "600": "oklch(48.8% .243 264.376)",
-                        #"700": "oklch(49.6% .265 301.924)",
-                        #"800": "oklch(43.8% .218 303.724)",
-                        #"900": "oklch(38.1% .176 304.987)",
-                        #"950": "oklch(29.1% .149 302.717)",
+                    "orange": {
+                        "50": "#fef4e6",
+                        "100": "#fde5cc",
+                        "200": "#fbd099",
+                        "300": "#f9bb66",
+                        "400": "#f7a633",
+                        "500": "#f59100",      # Naranja más brillante/claro
+                        "600": "#f08227",      # TU COLOR NARANJA (#f08227)
+                        "700": "#c0661f",
+                        "800": "#904a17",
+                        "900": "#602e0f",
+                        "950": "#301207",
+                    },
+                    
+                    "green": {
+                        "50": "#e8f9f2",
+                        "100": "#c5f0e0",
+                        "200": "#9de7cc",
+                        "300": "#75deb9",
+                        "400": "#4dd5a5",
+                        "500": "#25cc92",      # Verde más claro/brillante
+                        "600": "#10b981",      # TU COLOR VERDE (#10b981)
+                        "700": "#0d9467",
+                        "800": "#0a6f4d",
+                        "900": "#064a34",
+                        "950": "#03251a",
+                    },
+                    
+                    "gray": {
+                        "50": "oklch(98.5% 0.002 247.8)",
+                        "100": "oklch(96.7% 0.003 264.5)",
+                        "200": "oklch(92.8% 0.006 264.5)",
+                        "300": "oklch(87.2% 0.010 258.3)",
+                        "400": "oklch(70.7% 0.022 261.3)",
+                        "500": "oklch(55.1% 0.027 264.4)",
+                        "600": "oklch(44.6% 0.030 256.8)",
+                        "700": "oklch(37.3% 0.034 259.7)",
+                        "800": "oklch(27.8% 0.033 256.8)",
+                        "900": "oklch(21.0% 0.034 264.7)",
+                        "950": "oklch(13.0% 0.028 261.7)",
+                    },
+                    
+                    "accent": {
+                        "50": "oklch(97.5% 0.025 250.5)",
+                        "100": "oklch(94.5% 0.045 250.1)",
+                        "200": "oklch(90.5% 0.068 249.8)",
+                        "300": "oklch(85.5% 0.092 249.5)",
+                        "400": "oklch(80.5% 0.115 249.2)",
+                        "500": "oklch(75.5% 0.135 248.9)",  # #afc5e1 equivalente (más claro)
+                        "600": "oklch(65.5% 0.140 248.7)",
+                        "700": "oklch(55.5% 0.130 248.5)",
+                        "800": "oklch(45.5% 0.115 248.3)",
+                        "900": "oklch(35.5% 0.095 248.1)",
+                        "950": "oklch(25.5% 0.075 247.9)",
                     },
                     
                     "font": 

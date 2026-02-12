@@ -97,8 +97,8 @@ class CreateUserSchema(Schema):
         if User.objects.filter(email__iexact=self.email).exists():
             raise BadRequestException('Este correo electrónico ya está registrado en sistema')
         
-        # Crear usuario
-        return User.objects.create_user(
+        # Crear usuario primero con los campos básicos
+        user = User.objects.create_user(
             username=self.username,
             nombre_apellido=self.nombre_apellido,
             email=self.email,
@@ -106,6 +106,12 @@ class CreateUserSchema(Schema):
             numero=numero_int,
             password=self.password,
         )
+
+        # Luego actualizar los campos adicionales
+        user.is_customer = True
+        user.save()
+        
+        return user
 
 class UpdatePasswordSchema(Schema):
     old_password: str

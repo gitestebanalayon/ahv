@@ -11,7 +11,8 @@ from apps.cuenta.views.auth                     import CrearCuentaController
 from apps.cuenta.views.auth                     import AuthController
 from apps.cuenta.views.usuario                  import UsuarioController
 
-from apps.sistema.views.conductor import router as conductor
+# from apps.sistema.views.conductor import router as conductor
+from apps.sistema.views.pedido import router as pedido
 
 api = NinjaExtraAPI(
                         title           = "AHV",
@@ -19,7 +20,6 @@ api = NinjaExtraAPI(
                         urls_namespace  = "demostrador",
                     )
 
-# Manejador genérico para ValidationError (422)
 def handle_validation_error_generic(request, exc):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
@@ -89,7 +89,6 @@ def handle_ninja_validation_error(request, exc):
 def handle_pydantic_validation_error(request, exc):
     return handle_validation_error_generic(request, exc)
 
-
 api.register_controllers(
     ResetPasswordController,
     CustomResetPasswordController,
@@ -98,4 +97,5 @@ api.register_controllers(
     UsuarioController
 )
 
-api.add_router("/conductor/",           conductor           )
+# api.add_router("/conductor/",           conductor           )
+api.add_router("/pedido/",              pedido              )
