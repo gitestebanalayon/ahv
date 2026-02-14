@@ -1,0 +1,3 @@
+from apps.proveedores.admin.proveedor import Proveedor
+from apps.proveedores.admin.proveedor_tipo_concreto_precio import ProveedorTipoConcretoPrecioAdmin
+from apps.proveedores.admin.proveedor_agregado_precio import ProveedorAgregadoPrecioAdmin

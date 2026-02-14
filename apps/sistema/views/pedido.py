@@ -218,14 +218,14 @@ def crear_pedido(request, data: CrearPedidoSchema):
         )
     
 @permission_required('sistema.view_pedido')
-@router.get("/listar", tags=tag, response=ListResponse, auth=JWTAuth())
+@router.get("/listar", tags=tag, response=ListResponse)
 def listar(
     request: HttpRequest,
     page: int = Query(1, description="Número de página"),
     page_size: int = Query(10, description="Cantidad de elementos por página"),
     pedido_id: int = Query(None, description="Filtrar por ID el pedido"),
 ):
-    user = request.user
+    # user = request.user
 
 
     # Validar y ajustar parámetros de paginación
@@ -235,19 +235,19 @@ def listar(
     # Query base
     qs = Pedido.objects.all().order_by('-fecha_creacion')  # Orden descendente
     
-    # 🔥 FILTROS SEGÚN ROL
-    es_cliente = user.groups.filter(name='Clientes').exists()
-    es_administrador = user.is_staff or user.groups.filter(name='Administradores').exists()
+    # # 🔥 FILTROS SEGÚN ROL
+    # es_cliente = user.groups.filter(name='Clientes').exists()
+    # es_administrador = user.is_staff or user.groups.filter(name='Administradores').exists()
     
-    if es_cliente:
-        # Clientes: solo ven sus propios pedidos
-        qs = qs.filter(cliente=user)
-    elif es_administrador:
-        # Administradores: pueden ver todo
-        pass
-    else:
-        # Otros roles: lógica personalizada
-        pass
+    # if es_cliente:
+    #     # Clientes: solo ven sus propios pedidos
+    #     qs = qs.filter(cliente=user)
+    # elif es_administrador:
+    #     # Administradores: pueden ver todo
+    #     pass
+    # else:
+    #     # Otros roles: lógica personalizada
+    #     pass
     
     # Filtrar por pedido_id si se proporciona
     if pedido_id:

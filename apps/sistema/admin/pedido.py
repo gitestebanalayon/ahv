@@ -7,6 +7,7 @@ from django.shortcuts               import render, redirect, get_object_or_404
 from django.urls                    import reverse, path
 from django                         import forms
 from django.core.exceptions import ValidationError
+from django.db.models import Sum
 
 
 from unfold.admin                   import ModelAdmin
@@ -28,18 +29,161 @@ from unfold.contrib.filters.admin   import (
 
 from apps.cuenta.models import User
 from apps.sistema.models.pedido import Pedido, Entrega
+from apps.administracion.models.agregado import Agregado
 from apps.sistema.models.conductor import Conductor
 from apps.sistema.models.vehiculo import Vehiculo
+from apps.sistema.models.pedido_agregado import PedidoAgregado
 
-class EntregaForm(forms.ModelForm):
+# class EntregaForm(forms.ModelForm):
+#     class Meta:
+#         model = Entrega
+#         fields = ['vehiculo', 'conductor', 'secuencia', 'yardas_asignadas', 
+#                  'fecha_hora_salida', 'fecha_hora_entrega', 'nota']
+
+class PedidoAgregadoInline(admin.TabularInline):
+    model = PedidoAgregado
+    extra = 0
+    verbose_name = "Precio de Agregado"
+    verbose_name_plural = "Precios de Agregados (Detalle)"
+    fields = ['agregado', 'precio_aplicado', 'precio_aplicado_codigo']
+    readonly_fields = ['precio_aplicado', 'precio_aplicado_codigo']
+    classes = ['collapse']  # Opcional: colapsado por defecto
+
+
+class PedidoAdminForm(forms.ModelForm):
+    """
+    Formulario con las FLECHITAS que quieres
+    """
+    # Variable para controlar si ya sincronizamos
+    _sincronizado = False
+    
     class Meta:
-        model = Entrega
-        fields = ['vehiculo', 'conductor', 'secuencia', 'yardas_asignadas', 
-                 'fecha_hora_salida', 'fecha_hora_entrega', 'nota']
-
+        model = Pedido
+        fields = '__all__'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Configurar queryset
+        self.fields['agregado'].queryset = Agregado.objects.filter(
+            is_delete=False
+        ).order_by('nombre')
+    
+    def save(self, commit=True):
+        """
+        Guarda el pedido y SINCRONIZA los precios en PedidoAgregado
+        Maneja correctamente commit=False y commit=True
+        """
+     
+        # Guardar el objeto (puede ser con commit True o False)
+        pedido = super().save(commit=commit)
+        
+        if commit:
+            self.save_m2m()
+            # Sincronizar precios SOLO si no se ha sincronizado ya
+            if not self._sincronizado:
+                self.sincronizar_precios_agregados(pedido)
+                self._sincronizado = True
+            else:
+                print("Ya sincronizado anteriormente, omitiendo...")
+            
+        else: 
+            # Guardar los datos para cuando se haga commit=True
+            self.pedido_temporal = pedido
+            self.agregados_seleccionados = self.cleaned_data.get('agregado', [])
+        
+        return pedido
+    
+    def sincronizar_precios_agregados(self, pedido):
+        """
+        Toma los agregados seleccionados y crea/actualiza PedidoAgregado
+        """
+        from apps.administracion.models.agregado_precio import AgregadoPrecio
+        
+      
+        
+        # Obtener IDs de agregados seleccionados
+        # Usar los guardados o los del cleaned_data
+        if hasattr(self, 'agregados_seleccionados'):
+            agregados_seleccionados = self.agregados_seleccionados
+           
+        else:
+            agregados_seleccionados = self.cleaned_data.get('agregado', [])
+        
+        
+     
+        if not agregados_seleccionados:
+            PedidoAgregado.objects.filter(pedido=pedido).delete()
+            self.recalcular_subtotales(pedido)
+            return
+        
+        # Eliminar precios de agregados que ya no están
+        eliminados = PedidoAgregado.objects.filter(pedido=pedido).exclude(
+            agregado__in=agregados_seleccionados
+        ).delete()
+       
+        
+        # Crear o actualizar precios para los agregados seleccionados
+        creados = 0
+        actualizados = 0
+        
+        for agregado in agregados_seleccionados:
+            # Buscar precio actual del agregado
+            precio_actual = AgregadoPrecio.objects.filter(
+                agregado=agregado,
+                is_active=True
+            ).order_by('-fecha_inicio').first()
+            
+            if precio_actual:
+                precio = precio_actual.precio
+                codigo = precio_actual.codigo
+                
+            else:
+                precio = 0
+                codigo = None
+               
+            
+            # Crear o actualizar
+            obj, created = PedidoAgregado.objects.update_or_create(
+                pedido=pedido,
+                agregado=agregado,
+                defaults={
+                    'precio_aplicado': precio,
+                    'precio_aplicado_codigo': codigo
+                }
+            )
+            
+            if created:
+                creados += 1
+            else:
+                actualizados += 1
+        
+     
+        # Verificar que se guardaron
+        # total = PedidoAgregado.objects.filter(pedido=pedido).count()
+        
+        
+        # Recalcular subtotales
+        self.recalcular_subtotales(pedido)
+       
+    
+    def recalcular_subtotales(self, pedido):
+        """Recalcula subtotales basado en PedidoAgregado"""
+        total_agregados = PedidoAgregado.objects.filter(pedido=pedido).aggregate(
+            total=Sum('precio_aplicado')
+        )['total'] or 0
+        
+        pedido.subtotal_agregados = total_agregados
+        pedido.precio_total = (pedido.subtotal_yardas or 0) + total_agregados + (pedido.subtotal_hultdelivery or 0)
+        pedido.save(update_fields=['subtotal_agregados', 'precio_total'])
+     
+        
 @admin.register(Pedido)
 class PedidoAdmin(ModelAdmin):
-    filter_horizontal = ('agregado',)
+    form = PedidoAdminForm
+    
+    filter_horizontal = ['agregado']
+    
      # Cambia esto para mostrar 10 registros por página
     list_per_page = 10
     
@@ -301,11 +445,20 @@ class PedidoAdmin(ModelAdmin):
         (
             ("Pedido"), 
             {
-                "classes":  ["tab"],
-                "fields":   ['cliente', 'tipo_concreto', 'cantidad_yardas', 'slump', 'agregado', 'fecha_entrega', 'hora_entrega', 'direccion_entrega', 'nota'],
+                "classes": ["tab"],
+                "fields": [
+                    'cliente', 
+                    'tipo_concreto', 
+                    'cantidad_yardas', 
+                    'slump', 
+                    'agregado',  # 👈 ESTE CAMPO TENDRÁ LAS FLECHITAS
+                    'fecha_entrega', 
+                    'hora_entrega', 
+                    'direccion_entrega', 
+                    'nota'
+                ],
             }
         ),
-
     ]
     
     def entrega_view(self, request, pedido_id):
@@ -355,56 +508,30 @@ class PedidoAdmin(ModelAdmin):
         
         return obj
     
-    # def save_model(self, request, obj, form, change):
-    #     """
-    #     Sobrescribir save_model - Versión CORREGIDA
-    #     """
-    #     print(f"=== DEBUG save_model ===")
-    #     print(f"Pedido ID antes: {obj.id}")
-    #     print(f"Es cambio: {change}")
-        
-    #     # Guardar el objeto principal PRIMERO
-    #     super().save_model(request, obj, form, change)
-        
-    #     print(f"Pedido ID después: {obj.id}")
-        
-        # NO calcular precios aquí todavía - se hará en save_related
-        
-    # def save_related(self, request, form, formsets, change):
-    #     """
-    #     Este método se ejecuta DESPUÉS de que se han guardado las relaciones ManyToMany
-    #     Aquí es donde debemos calcular los precios
-    #     """
-    #     print(f"=== DEBUG save_related ===")
-    #     print(f"Calculando precios después de guardar relaciones...")
-        
-    #     # Primero llamar al método padre
-    #     super().save_related(request, form, formsets, change)
-        
-    #     # Obtener el objeto del formulario
-    #     obj = form.instance
-        
-    #     # Refrescar para obtener las relaciones ManyToMany
-    #     obj.refresh_from_db()
-        
-    #     print(f"Agregados después de guardar: {list(obj.agregado.all())}")
-        
-    #     # Ahora sí calcular los precios
-    #     obj.calcular_precios()
-        
-    #     # Guardar los campos calculados
-    #     update_fields = [
-    #         'subtotal_yardas', 'subtotal_agregados', 'subtotal_hultdelivery', 'precio_total', 
-    #         'fecha_modificacion', 'rango_pedido', 'rango_pedido_codigo',
-    #         'precio_por_yarda_aplicado', 'precio_por_yarda_aplicado_codigo'
-    #     ]
-        
-    #     # Filtrar solo campos que existen
-    #     campos_existentes = [campo for campo in update_fields if hasattr(obj, campo)]
-    #     if campos_existentes:
-    #         obj.save(update_fields=campos_existentes)
-    #         print(f"Campos calculados guardados: {campos_existentes}")
+    def save_model(self, request, obj, form, change):
+        """
+        Guarda el modelo
+        """
        
+        super().save_model(request, obj, form, change)
+       
+    def save_related(self, request, form, formsets, change):
+        """
+        Guarda las relaciones
+        """
+       
+        super().save_related(request, form, formsets, change)
+        
+        # Si por alguna razón no se sincronizó en save(), hacerlo aquí
+        obj = form.instance
+        if not hasattr(form, '_sincronizado') or not form._sincronizado:
+         
+            form.sincronizar_precios_agregados(obj)
+            form._sincronizado = True
+        
+       
+    
+
     def response_add(self, request, obj, post_url_continue=None):
         """
         Redirigir después de agregar
@@ -425,10 +552,16 @@ class PedidoAdmin(ModelAdmin):
         
         return super().response_change(request, obj)   
      
+
     class Media:
+        # css = {
+        #     'all': ('admin/css/widgets.css',)  # CSS necesario para filter_horizontal
+        # }
         js = (
             'admin/js/pedido_modal.js',
-            'admin/js/pedido_admin.js')
+            'admin/js/pedido_admin.js',
+            'admin/js/SelectBox.js',
+            'admin/js/SelectFilter2.js')
         
 @admin.register(Entrega)
 class EntregaAdmin(ModelAdmin):

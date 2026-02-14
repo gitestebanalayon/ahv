@@ -51,6 +51,7 @@ LOCAL_APPS = [
     'apps.sistema',
     'apps.frontend',
     'apps.administracion',
+    'apps.proveedores',
 ]
 
 THIRD_APPS = [

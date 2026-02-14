@@ -1,10 +1,12 @@
 # apps/administracion/models/agregado_precio.py
 from django.db import models
 from datetime import date
+from django.db.models import Max
 from apps.administracion.models.agregado import Agregado
 
 class AgregadoPrecio(models.Model):
     agregado = models.ForeignKey(Agregado, on_delete=models.PROTECT, related_name='precios')
+    codigo = models.CharField('Código', max_length=20, unique=True)
     precio = models.DecimalField('Precio', max_digits=10, decimal_places=2)
     fecha_inicio = models.DateField('Fecha Inicio', default=date.today)
     fecha_fin = models.DateField('Fecha Fin', null=True, blank=True)
@@ -25,9 +27,27 @@ class AgregadoPrecio(models.Model):
         return f'{self.agregado.nombre}: ${self.precio}'
 
     def save(self, *args, **kwargs):
-        # Si es nuevo y no tiene fecha_inicio, usar hoy
-        # if not self.pk and not self.fecha_inicio:
-        #     self.fecha_inicio = timezone.now().date()
+        if not self.codigo:
+            # Obtener el último número de entrega
+            ultimo_codigo = AgregadoPrecio.objects.aggregate(
+                max_numero=Max('codigo'))
+            ultimo_numero = 0
+
+            if ultimo_codigo['max_numero']:
+                # Extraer solo los números del último código
+                try:
+                    ultimo_numero = int(
+                        ultimo_codigo['max_numero'].replace('CA', ''))
+                except (ValueError, AttributeError):
+                    ultimo_numero = 999  # Si hay error, empezar desde 1000
+
+            # Si no hay entregas, empezar desde 1000
+            if ultimo_numero < 1000:
+                nuevo_numero = 1000
+            else:
+                nuevo_numero = ultimo_numero + 1
+
+            self.codigo = f'CA{nuevo_numero}'
         
         # Si es nuevo y activo, desactivar el anterior
         if not self.pk and self.is_active:

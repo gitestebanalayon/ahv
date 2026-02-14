@@ -15,7 +15,6 @@ from apps.administracion.models.precio_hult_delivery import PrecioHultDelivery
 from apps.administracion.models.agregado import Agregado
 from apps.administracion.models.agregado_precio import AgregadoPrecio
 
-from apps.administracion.schemas.tipo_concreto import SchemaCrear, SchemaListar
 from apps.schemas.list_response import ListResponse
 from apps.schemas.types_messages import SuccessSchema, ErrorSchema
 

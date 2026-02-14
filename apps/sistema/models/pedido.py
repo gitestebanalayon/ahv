@@ -13,6 +13,7 @@ from apps.auxiliares.models.estado_vehiculo import EstadoVehiculo
 from apps.auxiliares.models.estado_pedido import EstadoPedido
 from apps.sistema.models.conductor import Conductor
 from apps.sistema.models.vehiculo import Vehiculo
+# from apps.sistema.models.pedido_agregado import PedidoAgregado
 from apps.cuenta.models import User
 
 
@@ -39,7 +40,7 @@ class Pedido(models.Model):
     precio_por_yarda_aplicado = models.DecimalField('Precio por Yarda Aplicado', 
                                                     max_digits=10, decimal_places=2, 
                                                     null=True, blank=True)
-    precio_por_yarda_aplicado_codigo = models.IntegerField('Código de Precio por Yarda Aplicado', 
+    precio_por_yarda_aplicado_codigo = models.CharField('Código de Precio por Yarda Aplicado', 
                                                            null=True, blank=True)
      
     # CORREGIDO: Agregar 'through' para usar el modelo intermedio
@@ -47,7 +48,7 @@ class Pedido(models.Model):
         Agregado, 
         verbose_name='Agregados', 
         blank=True,
-        # through='AgregadoPedido',  # COMENTAR ESTO
+        # through=PedidoAgregado,  # COMENTAR ESTO
         related_name='pedidos'
     )
     
@@ -136,11 +137,11 @@ class Pedido(models.Model):
             # USAR LA RELACIÓN DIRECTA (sin through)
             agregados = self.agregado.all()
             
-            print(f"DEBUG: Encontrados {agregados.count()} agregados para pedido {self.id}")
-            print(f"DEBUG: Cantidad de yardas: {self.cantidad_yardas}")
+            # print(f"DEBUG: Encontrados {agregados.count()} agregados para pedido {self.id}")
+            # print(f"DEBUG: Cantidad de yardas: {self.cantidad_yardas}")
             
             for agregado in agregados:
-                print(f"DEBUG: Procesando agregado: {agregado.nombre} (ID: {agregado.id})")
+                # print(f"DEBUG: Procesando agregado: {agregado.nombre} (ID: {agregado.id})")
                 
                 precio = AgregadoPrecio.objects.filter(
                     agregado=agregado,
@@ -153,7 +154,7 @@ class Pedido(models.Model):
                 if precio:
                     # ¡IMPORTANTE! Multiplicar por cantidad de yardas
                     subtotal_agregado = self.cantidad_yardas * precio.precio
-                    print(f"DEBUG: {agregado.nombre}: {self.cantidad_yardas} yardas x ${precio.precio}/yarda = ${subtotal_agregado}")
+                    # print(f"DEBUG: {agregado.nombre}: {self.cantidad_yardas} yardas x ${precio.precio}/yarda = ${subtotal_agregado}")
                     total += subtotal_agregado
                 else:
                     print(f"DEBUG: ¡NO se encontró precio activo para {agregado.nombre}!")
@@ -163,7 +164,7 @@ class Pedido(models.Model):
             import traceback
             traceback.print_exc()
         
-        print(f"DEBUG: Subtotal agregados total: ${total}")
+        # print(f"DEBUG: Subtotal agregados total: ${total}")
         return total
     
     def calcular_precios(self):
@@ -181,6 +182,7 @@ class Pedido(models.Model):
                 # print(f"🧱 Subtotal hultdelivery: ${self.subtotal_hultdelivery}")
             else:
                 self.subtotal_hultdelivery = 0
+                self.hultdelivery = None
 
 
             # 3. Calcular subtotal de yardas

@@ -1,0 +1,3 @@
+from apps.proveedores.models.proveedor import Proveedor
+from apps.proveedores.models.proveedor_tipo_concreto_precio import ProveedorTipoConcretoPrecio
+from apps.proveedores.models.proveedor_agregado_precio import ProveedorAgregadoPrecio
