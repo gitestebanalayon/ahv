@@ -6,7 +6,7 @@ click==8.2.1
 contextlib2==21.6.0
 cryptography==45.0.7
 diff-match-patch==20241021
-Django==5.0
+Django==6.0.2
 django-cors-headers==4.8.0
 django-import-export==4.3.9
 django-maintenance-mode==0.22.0

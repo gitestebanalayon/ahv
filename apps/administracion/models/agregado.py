@@ -2,6 +2,7 @@
 from django.db import models
 from utils.mixins.atributos_fechas_mixin import FechasAuditoriaMixin
 from utils.mixins.borrado_logico_mixin import BorradoLogicoMixin
+from simple_history.models              import HistoricalRecords
 
 class Agregado(
         BorradoLogicoMixin,
@@ -10,7 +11,8 @@ class Agregado(
     ):
     nombre = models.CharField('Nombre', max_length=50, unique=True)
     descripcion = models.CharField('Descripción', max_length=255, blank=True)
-
+    historical = HistoricalRecords()
+    
     class Meta:
         managed = True
         # db_table = 'agregado'

@@ -5,7 +5,7 @@ from datetime import date
 from utils.mixins.atributos_fechas_mixin import FechasAuditoriaMixin
 from utils.mixins.borrado_logico_mixin import BorradoLogicoMixin
 from utils.mixins.codigo_mixin import GeneradorCodigoConfigurableMixin
-
+from simple_history.models import HistoricalRecords
 
 class TipoConcreto(
         GeneradorCodigoConfigurableMixin,
@@ -20,6 +20,7 @@ class TipoConcreto(
     codigo = models.CharField('Código', max_length=20, unique=True)
     nombre = models.CharField('Nombre', max_length=255, unique=True)
     descripcion = models.CharField('Descripción', max_length=255, blank=True)
+    historical = HistoricalRecords()
 
     class Meta:
         managed = True

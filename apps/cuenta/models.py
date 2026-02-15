@@ -1,6 +1,6 @@
 from django.db                          import models
 from django.contrib.auth.models         import (AbstractBaseUser, BaseUserManager, PermissionsMixin)
-# from simple_history.models              import HistoricalRecords
+from simple_history.models              import HistoricalRecords
 
 
 class UserManager(BaseUserManager):
@@ -52,7 +52,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active               = models.BooleanField('Esta Activo',                                 default = True                             )
     is_staff                = models.BooleanField('Personal de Confianza',                       default = False                            )
     is_superuser            = models.BooleanField('Es ROOT',                                     default = False                            )
-    #historical              = HistoricalRecords()
+    historical              = HistoricalRecords()
     objects                 = UserManager()
 
     class Meta:

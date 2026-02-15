@@ -3,7 +3,7 @@ from apps.auxiliares.models.estado_conductor    import EstadoConductor
 # from apps.sistema.models.vehiculo               import Vehiculo
 from utils.mixins.atributos_fechas_mixin        import FechasAuditoriaMixin
 from utils.mixins.borrado_logico_mixin          import BorradoLogicoMixin
-
+from simple_history.models import HistoricalRecords
 
 
 class Conductor(
@@ -16,6 +16,7 @@ class Conductor(
     licencia                = models.CharField('Licencia',              max_length = 50,    unique = True                       )
     telefono                = models.CharField('Teléfono',              max_length = 15,                                        )    
     estado_conductor_nombre = models.ForeignKey(EstadoConductor,        on_delete = models.PROTECT, db_column="estado_conductor",     related_name = 'estado_conductor',    to_field = 'nombre', default = 'disponible'   )
+    historical = HistoricalRecords()
     
     class Meta:
         managed             = True

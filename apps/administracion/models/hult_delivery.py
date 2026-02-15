@@ -4,15 +4,25 @@ from django.db.models import Max
 from datetime import date
 from utils.mixins.atributos_fechas_mixin import FechasAuditoriaMixin
 from utils.mixins.borrado_logico_mixin import BorradoLogicoMixin
+from utils.mixins.codigo_mixin import GeneradorCodigoConfigurableMixin
+from simple_history.models import HistoricalRecords
+
 
 class HultDelivery(
+        GeneradorCodigoConfigurableMixin,
         BorradoLogicoMixin,
         FechasAuditoriaMixin,
         models.Model
     ):
+    
+    CODIGO_PREFIJO = 'CD'
+    CODIGO_MINIMO = 1000
+    
+    codigo = models.CharField('Código', max_length=20, unique=True)
     nombre = models.CharField('Nombre', max_length=50, unique=True)
     yarda_minima = models.DecimalField('Yarda Mínima', max_digits=10, decimal_places=1)
     yarda_maxima = models.DecimalField('Yarda Máxima', max_digits=10, decimal_places=1, null=True, blank=True)
+    historical = HistoricalRecords()
 
     class Meta:
         managed = True

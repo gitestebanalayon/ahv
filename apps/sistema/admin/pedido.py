@@ -8,7 +8,7 @@ from django.urls                    import reverse, path
 from django                         import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
-
+from django.utils.safestring import mark_safe
 
 from unfold.admin                   import ModelAdmin
 from unfold.paginator               import InfinitePaginator
@@ -319,7 +319,7 @@ class PedidoAdmin(ModelAdmin):
         count = obj.entrega_set.count()
 
         if count == 0:
-            return format_html(
+            return mark_safe(
             '<a class="inline-block font-semibold h-6 leading-6 px-2 rounded-default text-[11px] uppercase whitespace-nowrap bg-base-100 text-base-700 dark:bg-base-500/20 dark:text-base-200" '
             'title="Ver entregas">'
             'Sin entregas'
@@ -358,12 +358,14 @@ class PedidoAdmin(ModelAdmin):
             )
         # Si está completado, mostrar icono bloqueado
         elif str(obj.estado_pedido).lower() == 'completado':
-            return format_html(
+            # Opción 1: Usar mark_safe (recomendado)
+            from django.utils.safestring import mark_safe
+            return mark_safe(
                 '<span class="btn" title="Pedido completado - No editable">'
                 '<span class="material-symbols-outlined text-gray-400 dark:text-gray-600">lock</span>'
                 '</span>'
             )
-        return ""  # Retornar vacío si no tiene permiso
+        return ""
 
     editar.short_description = ''  # Esto oculta el encabezado de la columna
     editar.allow_tags = True  # Permite renderizar HTML en la columna
@@ -379,12 +381,13 @@ class PedidoAdmin(ModelAdmin):
             )
         # Si está completado, mostrar icono bloqueado
         elif str(obj.estado_pedido).lower() == 'completado':
-            return format_html(
+            from django.utils.safestring import mark_safe
+            return mark_safe(
                 '<span class="btn" title="Pedido completado - No eliminable">'
                 '<span class="material-symbols-outlined text-gray-400 dark:text-gray-600">lock</span>'
                 '</span>'
             )
-        return ""  # Retornar vacío si no tiene permiso
+        return ""
 
     eliminar.short_description = ''  # Esto oculta el encabezado de la columna
     eliminar.allow_tags = True

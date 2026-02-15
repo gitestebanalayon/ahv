@@ -6,7 +6,7 @@ from apps.administracion.models.agregado import Agregado
 
 from utils.mixins.codigo_mixin import GeneradorCodigoConfigurableMixin
 from utils.mixins.atributos_fechas_mixin import AtributosFechasMixin
-
+from simple_history.models              import HistoricalRecords
 
 class AgregadoPrecio(
         GeneradorCodigoConfigurableMixin,
@@ -22,6 +22,7 @@ class AgregadoPrecio(
     precio = models.DecimalField('Precio', max_digits=10, decimal_places=2)
     motivo_cambio = models.CharField('Motivo Cambio', max_length=255, blank=True)
     is_active = models.BooleanField('Activo', default=True)
+    historical = HistoricalRecords()
 
     class Meta:
         managed = True

@@ -1,5 +1,6 @@
 # apps/sistema/models/pedido_agregado.py
 from django.db import models
+from simple_history.models import HistoricalRecords
 
 class PedidoAgregado(models.Model):
     pedido = models.ForeignKey(
@@ -14,6 +15,7 @@ class PedidoAgregado(models.Model):
     precio_aplicado = models.DecimalField('Precio Aplicado', max_digits=10, decimal_places=2)
     precio_aplicado_codigo = models.CharField('Código Precio', max_length=50, blank=True, null=True)
     fecha_creacion = models.DateTimeField('Fecha Creación', auto_now_add=True)
+    historical = HistoricalRecords()
     
     class Meta:
         managed = True

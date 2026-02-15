@@ -2,8 +2,7 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Max, Sum, Q
-from django.db import transaction
+from django.db.models import Max, Sum
 
 from apps.administracion.models.agregado import Agregado
 from apps.administracion.models.hult_delivery import HultDelivery
@@ -20,6 +19,7 @@ from services.calculos_pedido_service import CalculosPedidoService
 from utils.mixins.codigo_mixin import GeneradorCodigoConfigurableMixin
 from utils.mixins.atributos_fechas_mixin import FechasAuditoriaMixin
 from utils.mixins.borrado_logico_mixin import BorradoLogicoMixin
+from simple_history.models import HistoricalRecords
 
 class Pedido(
         BorradoLogicoMixin,
@@ -56,7 +56,12 @@ class Pedido(
                                                     null=True, blank=True)
     precio_por_yarda_aplicado_codigo = models.CharField('Código de Precio por Yarda Aplicado', 
                                                            null=True, blank=True)
-     
+    precio_por_delivery_aplicado = models.DecimalField('Precio por Minimun Hult Delivery Aplicado', 
+                                                    max_digits=10, decimal_places=2, 
+                                                    null=True, blank=True)
+    precio_por_delivery_aplicado_codigo = models.CharField('Código de Precio por Minimun Hult Delivery Aplicado', 
+                                                           null=True, blank=True)
+    
     # CORREGIDO: Agregar 'through' para usar el modelo intermedio
     agregado = models.ManyToManyField(
         Agregado, 
@@ -71,6 +76,8 @@ class Pedido(
     subtotal_agregados = models.DecimalField('Subtotal Agregados', max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     subtotal_hultdelivery = models.DecimalField('Subtotal Hultdelivery', max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     precio_total = models.DecimalField('Precio Total', max_digits=10, decimal_places=2, null=True, blank=True, default=0)
+    historical = HistoricalRecords()
+        
         
     class Meta:
         managed = True
@@ -98,7 +105,17 @@ class Pedido(
         # para asegurar que los ManyToMany ya están guardados
    
 
-class Entrega(models.Model):
+class Entrega(
+        BorradoLogicoMixin,
+        GeneradorCodigoConfigurableMixin,
+        FechasAuditoriaMixin,
+        models.Model
+    ):
+    
+    CODIGO_PREFIJO = 'E'
+    CODIGO_CAMPO = 'codigo_entrega'  # ← Campo diferente
+    CODIGO_MINIMO = 1000
+    
     ESTADOS_ENTREGA = [
         ('programado', 'Programado'),
         ('en_camino', 'En Camino'),
@@ -124,13 +141,9 @@ class Entrega(models.Model):
     )
     
     entregado               = models.BooleanField('Es Entregado',          default = False                            )
-
-    
     nota                    = models.TextField('Nota',                                                  blank = True,   null = True                  )
-    is_delete               = models.BooleanField('Es Eliminado',          default = False                            )
-    fecha_creacion          = models.DateTimeField('Fecha Creación',        auto_now_add = True                                                             )
-    fecha_modificacion      = models.DateTimeField('Fecha Modificación',    auto_now = True                                                                 )
-  
+    
+    
     class Meta:
         managed = True
         db_table = 'sistema\".\"entrega'
@@ -155,29 +168,6 @@ class Entrega(models.Model):
         #     raise ValidationError(f"El vehículo {self.vehiculo.alias} actualmente en un viaje activo")
   
     def save(self, *args, **kwargs):
-         # Validar que yardas_asignadas sea mayor a 0
-      
-        # Generar código automático solo si es un nuevo registro
-        if not self.codigo_entrega:
-            # Obtener el último número de entrega
-            ultima_entrega = Entrega.objects.aggregate(max_numero=Max('codigo_entrega'))
-            ultimo_numero = 0
-            
-            if ultima_entrega['max_numero']:
-                # Extraer solo los números del último código
-                try:
-                    ultimo_numero = int(ultima_entrega['max_numero'].replace('E', ''))
-                except (ValueError, AttributeError):
-                    ultimo_numero = 999  # Si hay error, empezar desde 1000
-            
-            # Si no hay entregas, empezar desde 1000
-            if ultimo_numero < 1000:
-                nuevo_numero = 1000
-            else:
-                nuevo_numero = ultimo_numero + 1
-            
-            self.codigo_entrega = f'E{nuevo_numero}'
-            
          # Generar secuencia automática basada en el pedido
         if not self.pk:  # Solo para nuevos registros
             # Obtener la última secuencia para este pedido
