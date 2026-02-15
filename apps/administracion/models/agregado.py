@@ -1,12 +1,15 @@
 # apps/administracion/models/agregado.py
 from django.db import models
+from utils.mixins.atributos_fechas_mixin import FechasAuditoriaMixin
+from utils.mixins.borrado_logico_mixin import BorradoLogicoMixin
 
-class Agregado(models.Model):
+class Agregado(
+        BorradoLogicoMixin,
+        FechasAuditoriaMixin,
+        models.Model
+    ):
     nombre = models.CharField('Nombre', max_length=50, unique=True)
     descripcion = models.CharField('Descripción', max_length=255, blank=True)
-    is_delete = models.BooleanField('Eliminado', default=False)
-    fecha_creacion = models.DateTimeField('Fecha Creación', auto_now_add=True)
-    fecha_actualizacion = models.DateTimeField('Fecha Actualización', auto_now=True)
 
     class Meta:
         managed = True

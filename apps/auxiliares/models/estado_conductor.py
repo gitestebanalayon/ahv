@@ -1,11 +1,14 @@
 from django.db import models
+from utils.mixins.atributos_fechas_mixin import FechasAuditoriaMixin
+from utils.mixins.borrado_logico_mixin import BorradoLogicoMixin
 
-class EstadoConductor(models.Model):
+class EstadoConductor(
+        BorradoLogicoMixin,
+        FechasAuditoriaMixin,
+        models.Model
+    ):
     nombre              = models.CharField('Nombre',        max_length=50,      unique=True             )
     descripcion         = models.CharField('Descripción',   max_length = 100,   unique = True           )
-    is_delete           = models.BooleanField('Es Eliminado',               default = False             )
-    fecha_creacion      = models.DateTimeField('Fecha Creación',        auto_now_add = True             )
-    fecha_modificacion  = models.DateTimeField('Fecha Modificación',    auto_now = True                 )
 
     class Meta:
         managed             = True

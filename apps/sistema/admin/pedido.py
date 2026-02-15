@@ -503,8 +503,8 @@ class PedidoAdmin(ModelAdmin):
         obj = super().save_form(request, form, change)
         
         # Si es un nuevo pedido, calcular código
-        if not obj.codigo_pedido:
-            obj.codigo_pedido = obj.generar_codigo_pedido()
+        # if not obj.codigo_pedido:
+        #     obj.codigo_pedido = obj.generar_codigo_pedido()
         
         return obj
     

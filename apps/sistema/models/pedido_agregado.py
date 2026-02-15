@@ -14,7 +14,7 @@ class PedidoAgregado(models.Model):
     precio_aplicado = models.DecimalField('Precio Aplicado', max_digits=10, decimal_places=2)
     precio_aplicado_codigo = models.CharField('Código Precio', max_length=50, blank=True, null=True)
     fecha_creacion = models.DateTimeField('Fecha Creación', auto_now_add=True)
-
+    
     class Meta:
         managed = True
         db_table = 'sistema\".\"pedido_agregado_precios'  # 👈 Nombre diferente

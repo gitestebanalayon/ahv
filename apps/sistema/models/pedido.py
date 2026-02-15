@@ -16,8 +16,22 @@ from apps.sistema.models.vehiculo import Vehiculo
 # from apps.sistema.models.pedido_agregado import PedidoAgregado
 from apps.cuenta.models import User
 
+from services.calculos_pedido_service import CalculosPedidoService
+from utils.mixins.codigo_mixin import GeneradorCodigoConfigurableMixin
+from utils.mixins.atributos_fechas_mixin import FechasAuditoriaMixin
+from utils.mixins.borrado_logico_mixin import BorradoLogicoMixin
 
-class Pedido(models.Model):
+class Pedido(
+        BorradoLogicoMixin,
+        GeneradorCodigoConfigurableMixin,
+        FechasAuditoriaMixin,
+        models.Model
+    ):
+    
+    CODIGO_PREFIJO = 'N'
+    CODIGO_CAMPO = 'codigo_pedido'  # ← Campo diferente
+    CODIGO_MINIMO = 1000
+    
     codigo_pedido = models.CharField('Número de Orden', max_length=20, unique=True)
     cliente = models.ForeignKey(User, on_delete=models.PROTECT)
     tipo_concreto = models.ForeignKey(TipoConcreto, on_delete=models.PROTECT)
@@ -57,11 +71,7 @@ class Pedido(models.Model):
     subtotal_agregados = models.DecimalField('Subtotal Agregados', max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     subtotal_hultdelivery = models.DecimalField('Subtotal Hultdelivery', max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     precio_total = models.DecimalField('Precio Total', max_digits=10, decimal_places=2, null=True, blank=True, default=0)
-    
-    is_delete = models.BooleanField('Es Eliminado', default=False)
-    fecha_creacion = models.DateTimeField('Fecha Creación', auto_now_add=True)
-    fecha_modificacion = models.DateTimeField('Fecha Modificación', auto_now=True)
-    
+        
     class Meta:
         managed = True
         db_table = 'sistema\".\"pedido'
@@ -71,217 +81,22 @@ class Pedido(models.Model):
     def __str__(self):
         return f'{self.codigo_pedido}'
     
-    def clean(self):
-        """Validaciones antes de guardar"""
-        super().clean()
-        
-        if self.cantidad_yardas and self.cantidad_yardas <= 0:
-            raise ValidationError({'cantidad_yardas': 'La cantidad de yardas debe ser mayor que 0.'})
-    
-    def determinar_delivery(self):
-        """Determina automáticamente el delivery según la cantidad de yardas"""
-        from apps.administracion.models.hult_delivery import HultDelivery
-        from apps.administracion.models.precio_hult_delivery import PrecioHultDelivery
-        
-        try:
-            hult_delivery = HultDelivery.objects.filter(is_delete=False).order_by('yarda_minima')
-            
-            for hult in hult_delivery:
-                if hult.verificar_rango_delivery(self.cantidad_yardas):
-                    self.hultdelivery_id = hult.id
-
-                    precio_activo = PrecioHultDelivery.objects.filter(
-                        hult_delivery_id=hult.id,
-                        is_active=True,
-                    ).first()
-
-                    # if hult_delivery_precio:  # Verificar que no sea None
-                    return precio_activo.precio  # Devuelve solo el precio
-            
-        except Exception as e:
-            print(f"Error al determinar hult: {e}")
-        
-        return None
-    
-    def obtener_precio_concreto_activo (self):
-        """Obtiene el precio activo actual del tipo de concreto seleccionado"""
-        from apps.administracion.models.tipo_concreto_precio import TipoConcretoPrecio
-        
-        try:
-            precio_activo = TipoConcretoPrecio.objects.filter(
-                tipo_concreto_id=self.tipo_concreto.id,
-                is_active=True
-            ).first()
-
-            if precio_activo:
-                self.precio_por_yarda_aplicado = precio_activo.precio
-                self.precio_por_yarda_aplicado_codigo = precio_activo.codigo
-            else:
-                self.precio_por_yarda_aplicado = 0
-                self.precio_por_yarda_aplicado_codigo = None
-
-            return precio_activo
-            
-        except Exception as e:
-            print(f"Error obteniendo precio activo: {e}")
-            return None
-   
-    def calcular_subtotal_agregados(self):
-        """Calcula el subtotal de todos los agregados del pedido"""
-        from apps.administracion.models.agregado_precio import AgregadoPrecio
-        
-        total = 0
-        try:
-            fecha_referencia = self.fecha_creacion.date() if self.pk else timezone.now().date()
-            
-            # USAR LA RELACIÓN DIRECTA (sin through)
-            agregados = self.agregado.all()
-            
-            # print(f"DEBUG: Encontrados {agregados.count()} agregados para pedido {self.id}")
-            # print(f"DEBUG: Cantidad de yardas: {self.cantidad_yardas}")
-            
-            for agregado in agregados:
-                # print(f"DEBUG: Procesando agregado: {agregado.nombre} (ID: {agregado.id})")
-                
-                precio = AgregadoPrecio.objects.filter(
-                    agregado=agregado,
-                    fecha_inicio__lte=fecha_referencia,
-                    is_active=True
-                ).filter(
-                    Q(fecha_fin__gte=fecha_referencia) | Q(fecha_fin__isnull=True)
-                ).first()
-                
-                if precio:
-                    # ¡IMPORTANTE! Multiplicar por cantidad de yardas
-                    subtotal_agregado = self.cantidad_yardas * precio.precio
-                    # print(f"DEBUG: {agregado.nombre}: {self.cantidad_yardas} yardas x ${precio.precio}/yarda = ${subtotal_agregado}")
-                    total += subtotal_agregado
-                else:
-                    print(f"DEBUG: ¡NO se encontró precio activo para {agregado.nombre}!")
-            
-        except Exception as e:
-            print(f"Error al calcular subtotal de agregados: {e}")
-            import traceback
-            traceback.print_exc()
-        
-        # print(f"DEBUG: Subtotal agregados total: ${total}")
-        return total
-    
     def calcular_precios(self):
-        """Calcula todos los precios del pedido - Versión Mejorada"""
-        try:
-            # print(f"\n{'='*50}")
-            # print(f"INICIO calcular_precios para pedido {self.id if self.id else 'NUEVO'}")
-            # print(f"{'='*50}")
-            
-            # 1. Determinar delivery
-            
-            precio_delivery =self.determinar_delivery()
-            if precio_delivery:
-                self.subtotal_hultdelivery = precio_delivery
-                # print(f"🧱 Subtotal hultdelivery: ${self.subtotal_hultdelivery}")
-            else:
-                self.subtotal_hultdelivery = 0
-                self.hultdelivery = None
-
-
-            # 3. Calcular subtotal de yardas
-            self.obtener_precio_concreto_activo()
-
-            if self.cantidad_yardas and self.precio_por_yarda_aplicado:
-                self.subtotal_yardas = self.cantidad_yardas * self.precio_por_yarda_aplicado
-                # print(f"📦 Subtotal yardas:")
-                # print(f"   {self.cantidad_yardas} yardas x ${self.precio_por_yarda_aplicado}/yarda = ${self.subtotal_yardas}")
-            else:
-                self.subtotal_yardas = 0
-                # print(f"📦 Subtotal yardas: $0 (sin precio por yarda)")
-            
-            # 4. Calcular subtotal de agregados (multiplicando por yardas)
-            self.subtotal_agregados = self.calcular_subtotal_agregados()
-            # print(f"🧱 Subtotal agregados: ${self.subtotal_agregados}")
-            
-            # 5. Calcular precio total
-            self.precio_total = (self.subtotal_yardas or 0) + (self.subtotal_agregados or 0) + (self.subtotal_hultdelivery or 0)
-            # print(f"💰 Precio total:")
-            # print(f"   ${self.subtotal_yardas} (yardas) + ${self.subtotal_agregados} (agregados) + ${self.subtotal_hultdelivery} = ${self.precio_total}")
-            
-            # print(f"{'='*50}")
-            # print(f"FIN calcular_precios")
-            # print(f"{'='*50}\n")
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error al calcular precios: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            self.subtotal_yardas = 0
-            self.subtotal_agregados = 0
-            self.precio_total = 0
-            
-            return False
+        """
+        Versión simplificada que usa el servicio
+        """
+        servicio = CalculosPedidoService(self)
+        return servicio.calcular_todos_los_precios()
     
-    def generar_codigo_pedido(self):
-        """Genera el código de pedido automáticamente"""
-        try:
-            ultimo_pedido = Pedido.objects.filter(
-                codigo_pedido__regex=r'^N\d+$'
-            ).aggregate(max_numero=Max('codigo_pedido'))
-            
-            ultimo_numero = 0
-            
-            if ultimo_pedido['max_numero']:
-                try:
-                    ultimo_numero = int(ultimo_pedido['max_numero'][1:])
-                except (ValueError, AttributeError):
-                    ultimo_numero = 0
-            
-            nuevo_numero = max(1000, ultimo_numero + 1)
-            return f'N{nuevo_numero}'
-            
-        except Exception as e:
-            print(f"Error generando código de pedido: {e}")
-            from django.utils.crypto import get_random_string
-            return f'N{get_random_string(6, "0123456789")}'
-    
-    def save(self, *args, **kwargs):
-        """Guardar el pedido"""
-        # Generar código automático solo si es un nuevo registro
-        if not self.codigo_pedido:
-            self.codigo_pedido = self.generar_codigo_pedido()
-      
-        # Guardar primero para obtener ID
-        super().save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     """Guardar el pedido"""      
+    #     # Guardar primero para obtener ID
+    #     super().save(*args, **kwargs)
         
         
         # NOTA: Los cálculos se harán desde el admin en save_related
         # para asegurar que los ManyToMany ya están guardados
-        
-    # def get_info_precio(self):
-    #     """Retorna información detallada del cálculo de precios"""
-    #     return {
-    #         'cantidad_yardas': float(self.cantidad_yardas) if self.cantidad_yardas else 0,
-    #         'rango_aplicado': str(self.rango_pedido) if self.rango_pedido else 'No asignado',
-    #         'rango_codigo': self.rango_pedido_codigo or 'No asignado',
-    #         'precio_por_yarda': float(self.precio_por_yarda_aplicado) if self.precio_por_yarda_aplicado else 0,
-    #         'precio_por_yarda_codigo': self.precio_por_yarda_aplicado_codigo or 'No asignado',
-    #         'subtotal_yardas': float(self.subtotal_yardas) if self.subtotal_yardas else 0,
-    #         'subtotal_agregados': float(self.subtotal_agregados) if self.subtotal_agregados else 0,
-    #         'total': float(self.precio_total) if self.precio_total else 0,
-    #     }
-    
-    # def actualizar_codigos_desde_rango(self):
-    #     """Método para forzar la actualización de códigos basados en el rango actual"""
-    #     if self.rango_pedido:
-    #         self.asignar_codigos_desde_rango(self.rango_pedido)
-    #         self.save(update_fields=[
-    #             'rango_pedido_codigo',
-    #             'precio_por_yarda_aplicado',
-    #             'precio_por_yarda_aplicado_codigo',
-    #             'fecha_modificacion'
-    #         ])
-    #     return self.get_info_precio()
+   
 
 class Entrega(models.Model):
     ESTADOS_ENTREGA = [
@@ -410,12 +225,8 @@ class Entrega(models.Model):
                         # print(f"   - Entregas creadas: {todas_entregas.count()}")
                 except EstadoPedido.DoesNotExist:
                     print("⚠️ Estado 'Programado' no encontrado en la base de datos")
-        
-               
 
-        
-     
-    
+
     def marcar_como_iniciado(self):
         """Marca la entrega como iniciada"""
         try:

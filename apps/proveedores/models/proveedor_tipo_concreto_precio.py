@@ -6,17 +6,24 @@ from django.db.models import Max, Q
 from apps.proveedores.models.proveedor import Proveedor
 from apps.administracion.models.tipo_concreto import TipoConcreto
 
-class ProveedorTipoConcretoPrecio(models.Model):
+from utils.mixins.atributos_fechas_mixin        import AtributosFechasMixin
+from utils.mixins.codigo_mixin                  import GeneradorCodigoConfigurableMixin
+
+class ProveedorTipoConcretoPrecio(
+        GeneradorCodigoConfigurableMixin,
+        AtributosFechasMixin,
+        models.Model
+    ):
+    
+    CODIGO_PREFIJO = 'CPC'
+    CODIGO_MINIMO = 1000
+    
     proveedor = models.ForeignKey(Proveedor, on_delete=models.PROTECT)
     tipo_concreto = models.ForeignKey(TipoConcreto, on_delete=models.PROTECT)
     codigo = models.CharField('Código', max_length=20, unique=True)
     precio = models.DecimalField('Precio', max_digits=10, decimal_places=2)
-    fecha_inicio = models.DateField('Fecha Inicio', default=date.today)
-    fecha_fin = models.DateField('Fecha Fin', null=True, blank=True)
     is_active = models.BooleanField('Activo', default=True)
-    fecha_creacion = models.DateTimeField('Fecha Creación', auto_now_add=True)
-    fecha_actualizacion = models.DateTimeField('Fecha Actualización', auto_now=True)
-
+    
     class Meta:
         managed = True
         db_table = 'proveedores\".\"tipo_concreto_precio'
@@ -36,28 +43,6 @@ class ProveedorTipoConcretoPrecio(models.Model):
         return f'{self.proveedor.nombre_comercial} {self.tipo_concreto.nombre} {self.precio} {self.fecha_inicio} {self.fecha_fin}'
     
     def save(self, *args, **kwargs):
-        if not self.codigo:
-            
-            ultimo_codigo = ProveedorTipoConcretoPrecio.objects.aggregate(
-                max_numero=Max('codigo'))
-            ultimo_numero = 0
-
-            if ultimo_codigo['max_numero']:
-                # Extraer solo los números del último código
-                try:
-                    ultimo_numero = int(
-                        ultimo_codigo['max_numero'].replace('CPC', ''))
-                except (ValueError, AttributeError):
-                    ultimo_numero = 999  # Si hay error, empezar desde 1000
-
-            # Si no hay entregas, empezar desde 1000
-            if ultimo_numero < 1000:
-                nuevo_numero = 1000
-            else:
-                nuevo_numero = ultimo_numero + 1
-
-            self.codigo = f'CPC{nuevo_numero}'
-        
         # Si es nuevo y activo, desactivar el anterior
         if not self.pk:
             anteriores = ProveedorTipoConcretoPrecio.objects.filter(

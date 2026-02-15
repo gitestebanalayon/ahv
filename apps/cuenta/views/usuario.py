@@ -22,6 +22,11 @@ from apps.cuenta.schemes.usuario import (
 @api_controller("/usuario", tags=['Usuarios'], auth=JWTAuth())
 class UsuarioController():
     """Controller for all authentication operations"""
+    def _get_current_user(self):
+        """Obtiene el usuario actual del token"""
+        # JWTAuth ya valida el token y lo pone en request.user
+        return self.context.request.user
+    
     
     @route.post(
         "/crear", 
@@ -34,6 +39,9 @@ class UsuarioController():
         """Create a new user account - Solo usuarios con permiso add_user"""
         try:
             # Extraer token y decodificar
+            
+            
+            
             auth_header = self.context.request.headers.get('Authorization', '')
             
             if not auth_header.startswith('Bearer '):
@@ -61,24 +69,11 @@ class UsuarioController():
         """Change user password"""
         # NO captures APIException aquí - serán manejadas por el manejador global
         
-        auth_header = self.context.request.headers.get('Authorization', '')
+        user = self._get_current_user()  # ¡Ya tienes el usuario validado!
         
-        if not auth_header.startswith('Bearer '):
-            return 400, {"message": "Token de autorización requerido"}
-        
-        token = auth_header[7:]
-        secret_key = config('SECRET_KEY')
-        decoded = jwt.decode(token, secret_key, algorithms=["HS256"])
-
-        user_id = int(decoded['user_id'])
-        model = Model.objects.get(id=user_id)
-        
-        old_password = payload.old_password
-        new_password = payload.new_password
-        
-        if model.check_password(old_password):
-            model.set_password(new_password)
-            model.save()
+        if user.check_password(payload.old_password):
+            user.set_password(payload.new_password)
+            user.save()
             return 200, {"message": "Contraseña cambiada exitosamente"}
         else:
             return 400, {"message": "Contraseña actual incorrecta"}
@@ -91,18 +86,8 @@ class UsuarioController():
         """Change user email address"""
         try:
             
-            auth_header = self.context.request.headers.get('Authorization', '')
-            
-            if not auth_header.startswith('Bearer '):
-                return 400, {"message": "Token de autorización requerido"}
-            
-            token = auth_header[7:]
-            secret_key = config('SECRET_KEY')
-            decoded = jwt.decode(token, secret_key, algorithms=["HS256"])
-
-            user_id = int(decoded['user_id'])
-           
-            model = Model.objects.get(id=user_id)
+            user = self._get_current_user()  # ¡Ya tienes el usuario validado!    
+            model = Model.objects.get(id=user.id)
             
             # Las validaciones se manejan automáticamente por el schema
             for attr, value in payload.dict().items():
@@ -128,19 +113,9 @@ class UsuarioController():
     def actualizar_preguntas_y_respuestas(self, payload: UpdateQASchema):
         """Change user security question and answer"""
         try:
-            auth_header = self.context.request.headers.get('Authorization', '')
+            user = self._get_current_user()
             
-            if not auth_header.startswith('Bearer '):
-                return 400, {"message": "Token de autorización requerido"}
-            
-            token = auth_header[7:]
-            secret_key = config('SECRET_KEY')
-            decoded = jwt.decode(token, secret_key, algorithms=["HS256"])
-
-            user_id = int(decoded['user_id'])
-            
-            
-            model = Model.objects.get(id=user_id)
+            model = Model.objects.get(id=user.id)
             
             # Las validaciones se manejan automáticamente por el schema
             for attr, value in payload.dict().items():

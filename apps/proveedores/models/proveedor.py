@@ -1,11 +1,15 @@
 # apps/proveedores/models/proveedor.py
 from django.db import models
+from utils.mixins.atributos_fechas_mixin        import FechasAuditoriaMixin
+from utils.mixins.borrado_logico_mixin          import BorradoLogicoMixin
 
-class Proveedor(models.Model):
+
+class Proveedor(
+        BorradoLogicoMixin,
+        FechasAuditoriaMixin,
+        models.Model
+    ):
     nombre_comercial = models.CharField('Nombre', max_length=50, unique=True)
-    is_delete = models.BooleanField('Eliminado', default=False)
-    fecha_creacion = models.DateTimeField('Fecha Creación', auto_now_add=True)
-    fecha_actualizacion = models.DateTimeField('Fecha Actualización', auto_now=True)
 
     class Meta:
         managed = True

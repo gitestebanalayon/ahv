@@ -2,14 +2,17 @@
 from django.db import models
 from django.db.models import Max
 from datetime import date
+from utils.mixins.atributos_fechas_mixin import FechasAuditoriaMixin
+from utils.mixins.borrado_logico_mixin import BorradoLogicoMixin
 
-class HultDelivery(models.Model):
+class HultDelivery(
+        BorradoLogicoMixin,
+        FechasAuditoriaMixin,
+        models.Model
+    ):
     nombre = models.CharField('Nombre', max_length=50, unique=True)
     yarda_minima = models.DecimalField('Yarda Mínima', max_digits=10, decimal_places=1)
     yarda_maxima = models.DecimalField('Yarda Máxima', max_digits=10, decimal_places=1, null=True, blank=True)
-    is_delete = models.BooleanField('Eliminado', default=False)
-    fecha_creacion = models.DateTimeField('Fecha Creación', auto_now_add=True)
-    fecha_actualizacion = models.DateTimeField('Fecha Actualización', auto_now=True)
 
     class Meta:
         managed = True

@@ -6,16 +6,23 @@ from django.db.models import Max, Q
 from apps.proveedores.models.proveedor import Proveedor
 from apps.administracion.models.agregado import Agregado
 
-class ProveedorAgregadoPrecio(models.Model):
+from utils.mixins.atributos_fechas_mixin        import AtributosFechasMixin
+from utils.mixins.codigo_mixin                  import GeneradorCodigoConfigurableMixin
+
+class ProveedorAgregadoPrecio(
+        GeneradorCodigoConfigurableMixin,
+        AtributosFechasMixin,
+        models.Model
+    ):
+    
+    CODIGO_PREFIJO = 'CPA'
+    CODIGO_MINIMO = 1000
+    
     proveedor = models.ForeignKey(Proveedor, on_delete=models.PROTECT)
     agregado = models.ForeignKey(Agregado, on_delete=models.PROTECT)
     codigo = models.CharField('Código', max_length=20, unique=True)
     precio = models.DecimalField('Precio', max_digits=10, decimal_places=2)
-    fecha_inicio = models.DateField('Fecha Inicio', default=date.today)
-    fecha_fin = models.DateField('Fecha Fin', null=True, blank=True)
     is_active = models.BooleanField('Activo', default=True)
-    fecha_creacion = models.DateTimeField('Fecha Creación', auto_now_add=True)
-    fecha_actualizacion = models.DateTimeField('Fecha Actualización', auto_now=True)
     
     class Meta:
         managed = True
@@ -34,29 +41,7 @@ class ProveedorAgregadoPrecio(models.Model):
     def __str__(self):
         return f'{self.proveedor.nombre_comercial} {self.agregado.nombre} {self.precio} {self.fecha_inicio} {self.fecha_fin}'
     
-    def save(self, *args, **kwargs):
-        if not self.codigo:
-            
-            ultimo_codigo = ProveedorAgregadoPrecio.objects.aggregate(
-                max_numero=Max('codigo'))
-            ultimo_numero = 0
-
-            if ultimo_codigo['max_numero']:
-                # Extraer solo los números del último código
-                try:
-                    ultimo_numero = int(
-                        ultimo_codigo['max_numero'].replace('CPA', ''))
-                except (ValueError, AttributeError):
-                    ultimo_numero = 999  # Si hay error, empezar desde 1000
-
-            # Si no hay entregas, empezar desde 1000
-            if ultimo_numero < 1000:
-                nuevo_numero = 1000
-            else:
-                nuevo_numero = ultimo_numero + 1
-
-            self.codigo = f'CPA{nuevo_numero}'
-        
+    def save(self, *args, **kwargs):    
         # Si es nuevo y activo, desactivar el anterior
         if not self.pk:
             anteriores = ProveedorAgregadoPrecio.objects.filter(
