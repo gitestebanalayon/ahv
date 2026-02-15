@@ -7,9 +7,12 @@ __pycache__/
 .python-version
 
 # Django
-db.sqlite3
 *.log
 local_settings.py
+db.sqlite3
+db.sqlite3-journal
+pycache/
+*/__pycache__/*
 
 # Entornos virtuales
 venv/
