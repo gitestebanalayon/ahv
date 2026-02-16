@@ -13,7 +13,7 @@
     }
     
     // Configurar URL WebSocket - IMPORTANTE: usar wss:// para HTTPS
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const protocol = window.location.protocol === 'https:' ? 'ws:' : 'ws:';
     const host = window.location.host;
     const wsUrl = `${protocol}//${host}/ws/pedidos/`;
     
