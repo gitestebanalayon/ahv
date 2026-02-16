@@ -11,16 +11,17 @@ import logging.config
 BASE_DIR            = Path(__file__).resolve().parent.parent
 SECRET_KEY          = config('SECRET_KEY')
 DEBUG               = config('DEBUG')
-# ALLOWED_HOSTS       = config('ALLOWED_HOSTS', cast=Csv())
+ALLOWED_HOSTS       = config('ALLOWED_HOSTS', cast=Csv())
 
-ALLOWED_HOSTS = [
-    'ahv-jcsu.onrender.com',
-    'www.ahv-jcsu.onrender.com', 
-    '.onrender.com',
-    'localhost',
-    '127.0.0.1',
-    '172.16.0.78',  # Tu IP local si la necesitas
-]
+#ALLOWED_HOSTS = [
+    #'sistema.ahvcontractorllc.com',
+    #'ahv-jcsu.onrender.com',
+    #'www.ahv-jcsu.onrender.com', 
+    #'.onrender.com',
+    #'localhost',
+    #'127.0.0.1',
+    #'172.16.0.78',  # Tu IP local si la necesitas
+#]
 
 
 # Application definition
