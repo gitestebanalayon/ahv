@@ -151,10 +151,8 @@ CELERY_BROKER_TRANSPORT_OPTIONS = {
 
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://ahv-jcsu.onrender.com',
-    'https://www.ahv-jcsu.onrender.com',
-    'https://*.onrender.com',
-    'wss://*.onrender.com',  # Para WebSockets
+    'https://sistema.ahvcontractorllc.com',
+    'wss://*.ahvcontractorllc.com',  # Para WebSockets
 ]
 
 # CSRF_COOKIE_DOMAIN = '.onrender.com'
