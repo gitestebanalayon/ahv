@@ -13,6 +13,7 @@ SECRET_KEY          = config('SECRET_KEY')
 DEBUG               = config('DEBUG')
 ALLOWED_HOSTS       = config('ALLOWED_HOSTS', cast=Csv())
 
+
 #ALLOWED_HOSTS = [
     #'sistema.ahvcontractorllc.com',
     #'ahv-jcsu.onrender.com',
@@ -22,6 +23,15 @@ ALLOWED_HOSTS       = config('ALLOWED_HOSTS', cast=Csv())
     #'127.0.0.1',
     #'172.16.0.78',  # Tu IP local si la necesitas
 #]
+
+# Configuración para evitar el error 403 CSRF en producción
+CSRF_TRUSTED_ORIGINS = [
+    'https://sistema.ahvcontractorllc.com',
+]
+
+# También es recomendable añadir estas líneas para el manejo de HTTPS detrás del proxy de Coolify
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 
 # Application definition
@@ -192,6 +202,8 @@ SERVER_EMAIL = 'serviciosesteban953@gmail.com'
 
 MIDDLEWARE      =   [
                         'django.middleware.security.SecurityMiddleware',
+                        'whitenoise.middleware.WhiteNoiseMiddleware',  # <--- Agrega esta línea para asegurar que coolify cargue los archivos státicos
+                        'whitenoise.middleware.WhiteNoiseMiddleware',
                         'whitenoise.middleware.WhiteNoiseMiddleware',
                         'django.contrib.sessions.middleware.SessionMiddleware',
                         'simple_history.middleware.HistoryRequestMiddleware',
@@ -603,3 +615,14 @@ def dashboard_callback(request, context):
         "custom_message": "Bienvenido al panel de administración",
     })
     return context
+
+
+"""Archivos staticos en coolify"""
+
+import os
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') # Donde se guardarán al recolectar
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] # Donde están tus archivos originales
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
