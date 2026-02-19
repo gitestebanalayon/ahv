@@ -1,55 +1,44 @@
-# Python
-__pycache__/
+# --- PYTHON ---
+_pycache_/
 *.py[cod]
 *$py.class
 *.pyc
 *.pyo
 .python-version
 
-# Django
+# --- DJANGO ---
 *.log
 db.sqlite3
 db.sqlite3-journal
-pycache/
-*/__pycache__/*
-settings.py
 
-# Entornos virtuales
+
+# --- ENTORNOS VIRTUALES ---
 venv/
 env/
 .venv/
 ENV/
+bin/
+lib/
+share/
 
-# Archivos del sistema
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# --- ARCHIVOS DE ENTORNO (SECRETOS) ---
 
-# VS Code
-.vscode/
-
-# PyCharm
-.idea/
-*.iml
-
-# Archivos de entorno
 .env
 .env.local
 
-# Media y staticfiles
+# --- ESTÁTICOS Y MEDIA ---
+
+staticfiles/
 media/
 uploads/
 
-# Logs
-logs/
-*.log
+# --- ARCHIVOS DE SISTEMA Y EDITORES ---
+.DS_Store
+.vscode/
+.idea/
+*.iml
 
-# Archivos de base de datos
-*.db
-*.sqlite
+# --- BASE DE DATOS (DUMPS) ---
+*.sql
 *.dump
 backup/

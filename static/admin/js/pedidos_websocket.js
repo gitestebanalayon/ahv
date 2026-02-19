@@ -17,7 +17,7 @@
     console.log('🚀 WebSocket para pedidos iniciado (solo en listado)');
     
      // DETECTAR HTTPS vs HTTP
-    const protocol = window.location.protocol === 'https:' ? 'ws:' : 'ws:';
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws/pedidos/`;
     
     console.log(`🔗 Conectando a: ${wsUrl}`);
